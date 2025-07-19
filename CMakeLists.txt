@@ -4,8 +4,9 @@ project(failsafe)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Option to build tests
+# Build options
 option(BUILD_WITH_TESTS "Build unit tests" ON)
+option(BUILD_DOCUMENTATION "Build documentation with Doxygen" OFF)
 
 # Define warning flags for our project
 set(FAILSAFE_WARNING_FLAGS)
@@ -21,5 +22,84 @@ if(BUILD_WITH_TESTS)
     # Only fetch doctest when building tests
     add_subdirectory(ext/doctest)
     add_subdirectory(test)
+endif()
+
+# Documentation building
+if(BUILD_DOCUMENTATION)
+    find_package(Doxygen QUIET COMPONENTS dot)
+    if(DOXYGEN_FOUND)
+        message(STATUS "Doxygen found: ${DOXYGEN_EXECUTABLE}")
+        if(DOXYGEN_DOT_FOUND)
+            message(STATUS "Graphviz dot found: ${DOXYGEN_DOT_EXECUTABLE}")
+            set(DOXYGEN_DOT_PATH ${DOXYGEN_DOT_EXECUTABLE})
+        else()
+            message(STATUS "Graphviz dot not found. Graphs will not be generated.")
+            set(DOXYGEN_DOT_PATH "")
+        endif()
+        
+        # Set project version for documentation
+        if(NOT PROJECT_VERSION)
+            set(PROJECT_VERSION "1.0")
+        endif()
+        
+        # Configure Doxyfile from template
+        set(DOXYFILE_IN ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in)
+        set(DOXYFILE_OUT ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile)
+        configure_file(${DOXYFILE_IN} ${DOXYFILE_OUT} @ONLY)
+        
+        # Create docs directory
+        set(DOXYGEN_OUT ${CMAKE_CURRENT_BINARY_DIR}/docs)
+        file(MAKE_DIRECTORY ${DOXYGEN_OUT})
+        
+        # Find all header files for dependencies
+        file(GLOB_RECURSE FAILSAFE_HEADERS
+            ${CMAKE_CURRENT_SOURCE_DIR}/include/failsafe/*.hh
+            ${CMAKE_CURRENT_SOURCE_DIR}/include/failsafe/*.h
+        )
+        
+        # Add a custom target to run Doxygen (built with ALL)
+        add_custom_target(documentation ALL
+            COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYFILE_OUT}
+            WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+            COMMENT "Generating API documentation with Doxygen"
+            DEPENDS ${FAILSAFE_HEADERS} ${DOXYFILE_OUT}
+            VERBATIM
+        )
+        
+        # Add a target to just build docs (not part of ALL)
+        add_custom_target(docs
+            COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYFILE_OUT}
+            WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+            COMMENT "Generating API documentation with Doxygen"
+            DEPENDS ${FAILSAFE_HEADERS} ${DOXYFILE_OUT}
+            VERBATIM
+        )
+        
+        # Add a target to view documentation
+        add_custom_target(docs-view
+            COMMAND ${CMAKE_COMMAND} -E echo "Opening documentation in default browser..."
+            COMMAND xdg-open ${DOXYGEN_OUT}/html/index.html || open ${DOXYGEN_OUT}/html/index.html || start ${DOXYGEN_OUT}/html/index.html
+            DEPENDS documentation
+            COMMENT "Opening documentation in browser"
+            VERBATIM
+        )
+        
+        # Install documentation if requested
+        install(DIRECTORY ${DOXYGEN_OUT}/html
+            DESTINATION share/doc/failsafe
+            OPTIONAL
+        )
+        
+        message(STATUS "Documentation will be built in: ${DOXYGEN_OUT}")
+        message(STATUS "Use 'make documentation' to build docs as part of all targets")
+        message(STATUS "Use 'make docs' to build only documentation")
+        message(STATUS "Use 'make docs-view' to build and open documentation")
+    else()
+        message(WARNING "Doxygen not found. Documentation will not be built.")
+        message(STATUS "Install Doxygen to enable documentation generation.")
+        message(STATUS "  Ubuntu/Debian: sudo apt-get install doxygen graphviz")
+        message(STATUS "  macOS: brew install doxygen graphviz")
+        message(STATUS "  Windows: download from https://www.doxygen.nl/download.html")
+    endif()
 endif()
 
