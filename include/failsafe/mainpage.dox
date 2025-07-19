@@ -1,0 +1,299 @@
+/**
+ * @mainpage Failsafe - Modern C++ Error Handling and Logging Library
+ * 
+ * @section intro_sec Introduction
+ * 
+ * Failsafe is a modern C++17/20 library providing robust error handling and logging capabilities
+ * with a focus on developer experience, performance, and flexibility. The library consists of
+ * several complementary components that work together to provide comprehensive error management.
+ * 
+ * @section features_sec Key Features
+ * 
+ * - **Thread-safe logging** with compile-time level filtering
+ * - **Policy-based enforcement** mechanism inspired by Andrei Alexandrescu
+ * - **Flexible exception system** with debug trap modes
+ * - **Portable source location** handling (C++20, builtins, or macros)
+ * - **Multiple logger backends** (stderr, POCO, gRPC/Abseil)
+ * - **Zero-overhead abstractions** when features are disabled
+ * - **Header-only** implementation
+ * 
+ * @section components_sec Core Components
+ * 
+ * @subsection logger_component Logger
+ * 
+ * A flexible, thread-safe logging system with:
+ * - Multiple log levels (TRACE, DEBUG, INFO, WARN, ERROR, FATAL)
+ * - Compile-time and runtime level filtering
+ * - Category-based logging
+ * - Pluggable backend system
+ * - Variadic message formatting
+ * 
+ * @code
+ * // Basic usage
+ * LOG_INFO("MyApp", "Starting application version:", version);
+ * LOG_ERROR("Network", "Connection failed:", error_code, "retrying in", retry_seconds, "seconds");
+ * 
+ * // Conditional logging
+ * LOG_INFO_IF(verbose_mode, "Debug", "Detailed information:", data);
+ * 
+ * // Custom backend
+ * logger::set_backend(make_cerr_backend(true, true, true));
+ * @endcode
+ * 
+ * @subsection enforce_component Enforce
+ * 
+ * Policy-based enforcement mechanism for precondition checking:
+ * - Returns the validated value for chaining
+ * - Custom predicates for validation logic
+ * - Custom error handlers
+ * - Descriptive error messages
+ * 
+ * @code
+ * // Basic enforcement
+ * auto ptr = ENFORCE(malloc(size));  // Throws on null
+ * 
+ * // With custom message
+ * auto file = ENFORCE(fopen(path, "r"))("Failed to open:", path);
+ * 
+ * // Comparison enforcement
+ * auto index = ENFORCE_IN_RANGE(idx, 0, array_size - 1);
+ * auto positive = ENFORCE_GT(value, 0)("Value must be positive");
+ * @endcode
+ * 
+ * @subsection exception_component Exception
+ * 
+ * Enhanced exception throwing with:
+ * - Variadic message formatting
+ * - Automatic source location
+ * - Debug trap modes
+ * - Conditional throwing
+ * 
+ * @code
+ * // Basic throwing
+ * THROW(std::runtime_error, "Operation failed:", error_code);
+ * 
+ * // Conditional throwing
+ * THROW_IF(ptr == nullptr, std::invalid_argument, "Null pointer");
+ * THROW_UNLESS(file.is_open(), std::runtime_error, "Failed to open:", filename);
+ * 
+ * // Debug mode trapping
+ * DEBUG_TRAP_RELEASE_THROW(std::logic_error, "Invalid state:", state);
+ * @endcode
+ * 
+ * @section backends_sec Logger Backends
+ * 
+ * @subsection cerr_backend Cerr Backend
+ * Thread-safe stderr output with:
+ * - Optional timestamps (millisecond precision)
+ * - Optional thread IDs
+ * - Optional ANSI color codes
+ * - Configurable formatting
+ * 
+ * @subsection poco_backend POCO Backend
+ * Integration with POCO C++ Libraries logging:
+ * - Automatic severity mapping
+ * - Category-based logger selection
+ * - Leverages POCO's channels and formatters
+ * 
+ * @subsection grpc_backend gRPC/Abseil Backend
+ * Integration with gRPC's Abseil logging:
+ * - Custom LogSink implementation
+ * - Automatic verbosity synchronization
+ * - Captures all gRPC internal logs
+ * 
+ * @section configuration_sec Configuration
+ * 
+ * @subsection compile_config Compile-time Configuration
+ * 
+ * Define these macros before including failsafe headers:
+ * 
+ * - `LOGGER_MIN_LEVEL`: Minimum log level to compile (default: TRACE)
+ * - `FAILSAFE_DEFAULT_EXCEPTION`: Default exception type (default: std::runtime_error)
+ * - `FAILSAFE_TRAP_MODE`: Debug trap behavior (0: normal, 1: trap+throw, 2: trap only)
+ * - `FAILSAFE_LOCATION_FORMAT_STYLE`: Location format style (0-5)
+ * - `FAILSAFE_LOCATION_PATH_STYLE`: Path display style (0: full, 1: filename, 2: relative)
+ * - `LOGGER_THREAD_SAFE`: Enable thread safety (default: 1)
+ * 
+ * @subsection runtime_config Runtime Configuration
+ * 
+ * @code
+ * // Set minimum log level
+ * logger::set_min_level(LOGGER_LEVEL_INFO);
+ * 
+ * // Set custom backend
+ * logger::set_backend([](int level, const char* category, 
+ *                       const char* file, int line,
+ *                       const std::string& message) {
+ *     // Custom logging implementation
+ * });
+ * 
+ * // Configure specific categories
+ * logger::set_category_level("Network", LOGGER_LEVEL_DEBUG);
+ * @endcode
+ * 
+ * @section examples_sec Examples
+ * 
+ * @subsection example_basic Basic Error Handling
+ * 
+ * @code
+ * #include <failsafe/logger.hh>
+ * #include <failsafe/enforce.hh>
+ * #include <failsafe/exception.hh>
+ * 
+ * void process_file(const char* filename) {
+ *     // Enforce non-null filename
+ *     filename = ENFORCE(filename)("Filename cannot be null");
+ *     
+ *     // Open file with enforcement
+ *     auto file = ENFORCE(fopen(filename, "r"))("Failed to open file:", filename);
+ *     
+ *     // Log the operation
+ *     LOG_INFO("FileProcessor", "Processing file:", filename);
+ *     
+ *     // Read and validate data
+ *     char buffer[1024];
+ *     auto bytes = fread(buffer, 1, sizeof(buffer), file);
+ *     THROW_IF(ferror(file), std::runtime_error, "Read error on file:", filename);
+ *     
+ *     // Process data...
+ *     LOG_DEBUG("FileProcessor", "Read", bytes, "bytes from", filename);
+ *     
+ *     fclose(file);
+ * }
+ * @endcode
+ * 
+ * @subsection example_custom_backend Custom Logger Backend
+ * 
+ * @code
+ * #include <failsafe/logger.hh>
+ * #include <fstream>
+ * 
+ * class FileBackend {
+ *     std::ofstream file_;
+ *     std::mutex mutex_;
+ *     
+ * public:
+ *     FileBackend(const std::string& filename) 
+ *         : file_(filename, std::ios::app) {}
+ *     
+ *     void operator()(int level, const char* category,
+ *                    const char* file, int line,
+ *                    const std::string& message) {
+ *         std::lock_guard<std::mutex> lock(mutex_);
+ *         
+ *         file_ << "[" << logger::internal::level_to_string(level) << "] "
+ *               << "[" << category << "] "
+ *               << file << ":" << line << " - "
+ *               << message << std::endl;
+ *     }
+ * };
+ * 
+ * int main() {
+ *     // Set custom file backend
+ *     logger::set_backend(FileBackend("app.log"));
+ *     
+ *     LOG_INFO("Main", "Application started");
+ *     // All logs now go to app.log
+ * }
+ * @endcode
+ * 
+ * @subsection example_integration Framework Integration
+ * 
+ * @code
+ * #include <failsafe/logger.hh>
+ * #include <failsafe/logger/backend/grpc_logger.hh>
+ * #include <failsafe/logger/backend/cerr_backend.hh>
+ * 
+ * int main() {
+ *     // Set up failsafe logger
+ *     logger::set_backend(logger::backends::make_cerr_backend(true, true, true));
+ *     
+ *     // Initialize gRPC integration
+ *     logger::grpc::init_grpc_logging();
+ *     logger::grpc::sync_grpc_verbosity();
+ *     
+ *     // Now all gRPC logs appear through failsafe logger
+ *     // ... your gRPC application code ...
+ *     
+ *     // Cleanup
+ *     logger::grpc::shutdown_grpc_logging();
+ * }
+ * @endcode
+ * 
+ * @section thread_safety_sec Thread Safety
+ * 
+ * - Logger: Thread-safe by default (can be disabled with `LOGGER_THREAD_SAFE=0`)
+ * - Enforce: Thread-safe for enforcement operations
+ * - Exception: Thread-safe for throwing operations
+ * - Backends: Thread safety depends on implementation
+ *   - CerrBackend: Fully thread-safe with mutex protection
+ *   - POCO Backend: Relies on POCO's thread safety
+ *   - gRPC Backend: Thread-safe through Abseil's mechanisms
+ * 
+ * @section performance_sec Performance Considerations
+ * 
+ * - **Compile-time filtering**: Log statements below `LOGGER_MIN_LEVEL` are completely removed
+ * - **Zero-cost abstractions**: Disabled features have no runtime overhead
+ * - **Efficient formatting**: Uses variadic templates for type-safe, efficient message building
+ * - **Backend flexibility**: Choose backends based on performance requirements
+ * - **Header-only**: No linking overhead, allows full optimization
+ * 
+ * @section best_practices_sec Best Practices
+ * 
+ * 1. **Use appropriate log levels**:
+ *    - TRACE: Detailed execution flow
+ *    - DEBUG: Diagnostic information
+ *    - INFO: General information
+ *    - WARN: Warnings that don't require immediate action
+ *    - ERROR: Errors that can be recovered from
+ *    - FATAL: Unrecoverable errors
+ * 
+ * 2. **Choose enforcement over manual checks**:
+ *    @code
+ *    // Good
+ *    auto ptr = ENFORCE(get_resource())("Resource allocation failed");
+ *    
+ *    // Less ideal
+ *    auto ptr = get_resource();
+ *    if (!ptr) throw std::runtime_error("Resource allocation failed");
+ *    @endcode
+ * 
+ * 3. **Use categories for log organization**:
+ *    @code
+ *    LOG_INFO("Network", "Connection established");
+ *    LOG_INFO("Database", "Query executed");
+ *    LOG_INFO("UI", "Window rendered");
+ *    @endcode
+ * 
+ * 4. **Configure for production**:
+ *    @code
+ *    #define LOGGER_MIN_LEVEL LOGGER_LEVEL_INFO  // Remove debug/trace
+ *    #define FAILSAFE_TRAP_MODE 0                 // Disable debug traps
+ *    #define LOGGER_THREAD_SAFE 1                 // Ensure thread safety
+ *    @endcode
+ * 
+ * @section license_sec License
+ * 
+ * Failsafe is released under the MIT License. See LICENSE file for details.
+ * 
+ * @section credits_sec Credits
+ * 
+ * - Enforcement mechanism inspired by Andrei Alexandrescu's "Enforcements" article
+ * - Debug trap implementation based on psnip/debug-trap
+ * - Modern C++ design patterns and best practices
+ */
+
+/**
+ * @defgroup Core Core Components
+ * @brief Essential failsafe functionality
+ */
+
+/**
+ * @defgroup Backends Logger Backends
+ * @brief Backend implementations for the logger
+ */
+
+/**
+ * @defgroup Utilities Utility Components
+ * @brief Helper utilities and internal implementations
+ */
