@@ -11,6 +11,8 @@ add_executable(unittest
         test_exception_chaining.cc
         test_enforce_chaining.cc
         test_compile_time_filtering.cc
+        test_container_edge_cases.cc
+        strings_helper.hh
 )
 
 # Add portability test as a separate executable
