@@ -448,8 +448,14 @@ TEST_SUITE("Logger") {
     }
 
     TEST_CASE("Default cerr backend") {
+        // Save original state
+        auto original_level = logger::get_config().min_level.load();
+        auto original_enabled = logger::get_config().enabled.load();
+        
         // Test that default backend works
         logger::reset_backend();
+        logger::set_enabled(true);
+        logger::set_min_level(LOGGER_LEVEL_TRACE);
 
         // Capture cerr output
         std::stringstream captured;
@@ -463,5 +469,9 @@ TEST_SUITE("Logger") {
         std::string output = captured.str();
         CHECK(!output.empty());
         CHECK(output.find("Test error to cerr") != std::string::npos);
+        
+        // Restore original state
+        logger::set_min_level(original_level);
+        logger::set_enabled(original_enabled);
     }
 }

@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Build options
 option(BUILD_WITH_TESTS "Build unit tests" ON)
+option(BUILD_EXAMPLES "Build example programs" ON)
 option(BUILD_DOCUMENTATION "Build documentation with Doxygen" OFF)
 
 # Define warning flags for our project
@@ -22,6 +23,11 @@ if(BUILD_WITH_TESTS)
     # Only fetch doctest when building tests
     add_subdirectory(ext/doctest)
     add_subdirectory(test)
+endif()
+
+# Build examples if requested
+if(BUILD_EXAMPLES)
+    add_subdirectory(examples)
 endif()
 
 # Documentation building
@@ -102,4 +108,13 @@ if(BUILD_DOCUMENTATION)
         message(STATUS "  Windows: download from https://www.doxygen.nl/download.html")
     endif()
 endif()
+
+# Print build configuration summary
+message(STATUS "")
+message(STATUS "Failsafe build configuration:")
+message(STATUS "  C++ Standard: ${CMAKE_CXX_STANDARD}")
+message(STATUS "  Build tests: ${BUILD_WITH_TESTS}")
+message(STATUS "  Build examples: ${BUILD_EXAMPLES}")
+message(STATUS "  Build documentation: ${BUILD_DOCUMENTATION}")
+message(STATUS "")
 

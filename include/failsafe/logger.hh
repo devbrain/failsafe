@@ -5,6 +5,7 @@
  * @details
  * The failsafe logger provides a flexible, thread-safe logging system with the following features:
  * - Multiple log levels (TRACE, DEBUG, INFO, WARN, ERROR, FATAL)
+ * - Lazy evaluation by default - arguments are only evaluated if the log level is enabled
  * - Compile-time level filtering for zero-overhead when disabled
  * - Runtime level filtering
  * - Pluggable backend system
@@ -13,13 +14,20 @@
  * - Category-based logging
  * - Conditional logging
  * 
+ * @note All logging macros use lazy evaluation by default. This means expensive operations
+ * in log arguments are only executed when the log level is enabled, providing automatic
+ * performance optimization without any special syntax.
+ * 
  * @example
  * @code
- * // Basic logging
+ * // Basic logging - arguments are lazily evaluated
  * LOG_INFO("Starting application");
  * LOG_ERROR("Failed to connect:", error_code, "retrying in", delay, "seconds");
  * 
- * // Category-based logging
+ * // Expensive operations are only called if DEBUG is enabled
+ * LOG_DEBUG("Query result:", expensive_database_query());
+ * 
+ * // Category-based logging - also lazy by default
  * LOG_CAT_DEBUG("network", "Sending packet:", packet_id);
  * 
  * // Conditional logging
@@ -74,10 +82,11 @@
  * @brief Minimum compile-time log level
  * 
  * Messages below this level are completely removed at compile time.
- * Default is INFO level. Can be overridden by defining before including this header.
+ * Default is TRACE level (all levels enabled). Can be overridden by defining before including this header.
+ * For production builds, consider setting this to LOGGER_LEVEL_INFO or higher to remove debug/trace logs.
  */
 #ifndef LOGGER_MIN_LEVEL
-#define LOGGER_MIN_LEVEL LOGGER_LEVEL_INFO
+#define LOGGER_MIN_LEVEL LOGGER_LEVEL_TRACE
 #endif
 
 /** @internal Stringification helper macro */
@@ -323,52 +332,88 @@ namespace failsafe::logger {
  */
 
 /**
- * @brief Log a trace message
+ * @brief Log a trace message with lazy evaluation
  * @param ... Variable arguments for message formatting
+ * @note Arguments are only evaluated if TRACE level is enabled
  * @note Removed at compile time if LOGGER_MIN_LEVEL > TRACE
  */
+#if LOGGER_MIN_LEVEL <= LOGGER_LEVEL_TRACE
 #define LOG_TRACE(...) \
-    ::failsafe::logger::log_with_level<LOGGER_LEVEL_TRACE>(LOGGER_DEFAULT_CATEGORY_STR, __FILE__, __LINE__, __VA_ARGS__)
+    (::failsafe::logger::get_config().min_level.load() > LOGGER_LEVEL_TRACE) ? void() : \
+    (::failsafe::logger::log_with_level<LOGGER_LEVEL_TRACE>(LOGGER_DEFAULT_CATEGORY_STR, __FILE__, __LINE__, __VA_ARGS__), void())
+#else
+#define LOG_TRACE(...) ((void)0)
+#endif
 
 /**
- * @brief Log a debug message
+ * @brief Log a debug message with lazy evaluation
  * @param ... Variable arguments for message formatting
+ * @note Arguments are only evaluated if DEBUG level is enabled
  * @note Removed at compile time if LOGGER_MIN_LEVEL > DEBUG
  */
+#if LOGGER_MIN_LEVEL <= LOGGER_LEVEL_DEBUG
 #define LOG_DEBUG(...) \
-    ::failsafe::logger::log_with_level<LOGGER_LEVEL_DEBUG>(LOGGER_DEFAULT_CATEGORY_STR, __FILE__, __LINE__, __VA_ARGS__)
+    (::failsafe::logger::get_config().min_level.load() > LOGGER_LEVEL_DEBUG) ? void() : \
+    (::failsafe::logger::log_with_level<LOGGER_LEVEL_DEBUG>(LOGGER_DEFAULT_CATEGORY_STR, __FILE__, __LINE__, __VA_ARGS__), void())
+#else
+#define LOG_DEBUG(...) ((void)0)
+#endif
 
 /**
- * @brief Log an informational message
+ * @brief Log an informational message with lazy evaluation
  * @param ... Variable arguments for message formatting
+ * @note Arguments are only evaluated if INFO level is enabled
  * @note Removed at compile time if LOGGER_MIN_LEVEL > INFO
  */
+#if LOGGER_MIN_LEVEL <= LOGGER_LEVEL_INFO
 #define LOG_INFO(...) \
-    ::failsafe::logger::log_with_level<LOGGER_LEVEL_INFO>(LOGGER_DEFAULT_CATEGORY_STR, __FILE__, __LINE__, __VA_ARGS__)
+    (::failsafe::logger::get_config().min_level.load() > LOGGER_LEVEL_INFO) ? void() : \
+    (::failsafe::logger::log_with_level<LOGGER_LEVEL_INFO>(LOGGER_DEFAULT_CATEGORY_STR, __FILE__, __LINE__, __VA_ARGS__), void())
+#else
+#define LOG_INFO(...) ((void)0)
+#endif
 
 /**
- * @brief Log a warning message
+ * @brief Log a warning message with lazy evaluation
  * @param ... Variable arguments for message formatting
+ * @note Arguments are only evaluated if WARN level is enabled
  * @note Removed at compile time if LOGGER_MIN_LEVEL > WARN
  */
+#if LOGGER_MIN_LEVEL <= LOGGER_LEVEL_WARN
 #define LOG_WARN(...) \
-    ::failsafe::logger::log_with_level<LOGGER_LEVEL_WARN>(LOGGER_DEFAULT_CATEGORY_STR, __FILE__, __LINE__, __VA_ARGS__)
+    (::failsafe::logger::get_config().min_level.load() > LOGGER_LEVEL_WARN) ? void() : \
+    (::failsafe::logger::log_with_level<LOGGER_LEVEL_WARN>(LOGGER_DEFAULT_CATEGORY_STR, __FILE__, __LINE__, __VA_ARGS__), void())
+#else
+#define LOG_WARN(...) ((void)0)
+#endif
 
 /**
- * @brief Log an error message
+ * @brief Log an error message with lazy evaluation
  * @param ... Variable arguments for message formatting
+ * @note Arguments are only evaluated if ERROR level is enabled
  * @note Removed at compile time if LOGGER_MIN_LEVEL > ERROR
  */
+#if LOGGER_MIN_LEVEL <= LOGGER_LEVEL_ERROR
 #define LOG_ERROR(...) \
-    ::failsafe::logger::log_with_level<LOGGER_LEVEL_ERROR>(LOGGER_DEFAULT_CATEGORY_STR, __FILE__, __LINE__, __VA_ARGS__)
+    (::failsafe::logger::get_config().min_level.load() > LOGGER_LEVEL_ERROR) ? void() : \
+    (::failsafe::logger::log_with_level<LOGGER_LEVEL_ERROR>(LOGGER_DEFAULT_CATEGORY_STR, __FILE__, __LINE__, __VA_ARGS__), void())
+#else
+#define LOG_ERROR(...) ((void)0)
+#endif
 
 /**
- * @brief Log a fatal error message
+ * @brief Log a fatal error message with lazy evaluation
  * @param ... Variable arguments for message formatting
+ * @note Arguments are only evaluated if FATAL level is enabled
  * @note Removed at compile time if LOGGER_MIN_LEVEL > FATAL
  */
+#if LOGGER_MIN_LEVEL <= LOGGER_LEVEL_FATAL
 #define LOG_FATAL(...) \
-    ::failsafe::logger::log_with_level<LOGGER_LEVEL_FATAL>(LOGGER_DEFAULT_CATEGORY_STR, __FILE__, __LINE__, __VA_ARGS__)
+    (::failsafe::logger::get_config().min_level.load() > LOGGER_LEVEL_FATAL) ? void() : \
+    (::failsafe::logger::log_with_level<LOGGER_LEVEL_FATAL>(LOGGER_DEFAULT_CATEGORY_STR, __FILE__, __LINE__, __VA_ARGS__), void())
+#else
+#define LOG_FATAL(...) ((void)0)
+#endif
 
 /** @} */ // end of LogMacros group
 
@@ -378,52 +423,82 @@ namespace failsafe::logger {
  */
 
 /**
- * @brief Log a trace message with custom category
+ * @brief Log a trace message with custom category (lazy evaluation)
  * @param category The log category string
  * @param ... Variable arguments for message formatting
  */
+#if LOGGER_MIN_LEVEL <= LOGGER_LEVEL_TRACE
 #define LOG_CAT_TRACE(category, ...) \
-    ::failsafe::logger::log_with_level<LOGGER_LEVEL_TRACE>(category, __FILE__, __LINE__, __VA_ARGS__)
+    (::failsafe::logger::get_config().min_level.load() > LOGGER_LEVEL_TRACE) ? void() : \
+    (::failsafe::logger::log_with_level<LOGGER_LEVEL_TRACE>(category, __FILE__, __LINE__, __VA_ARGS__), void())
+#else
+#define LOG_CAT_TRACE(category, ...) ((void)0)
+#endif
 
 /**
- * @brief Log a debug message with custom category
+ * @brief Log a debug message with custom category (lazy evaluation)
  * @param category The log category string
  * @param ... Variable arguments for message formatting
  */
+#if LOGGER_MIN_LEVEL <= LOGGER_LEVEL_DEBUG
 #define LOG_CAT_DEBUG(category, ...) \
-    ::failsafe::logger::log_with_level<LOGGER_LEVEL_DEBUG>(category, __FILE__, __LINE__, __VA_ARGS__)
+    (::failsafe::logger::get_config().min_level.load() > LOGGER_LEVEL_DEBUG) ? void() : \
+    (::failsafe::logger::log_with_level<LOGGER_LEVEL_DEBUG>(category, __FILE__, __LINE__, __VA_ARGS__), void())
+#else
+#define LOG_CAT_DEBUG(category, ...) ((void)0)
+#endif
 
 /**
- * @brief Log an info message with custom category
+ * @brief Log an info message with custom category (lazy evaluation)
  * @param category The log category string
  * @param ... Variable arguments for message formatting
  */
+#if LOGGER_MIN_LEVEL <= LOGGER_LEVEL_INFO
 #define LOG_CAT_INFO(category, ...) \
-    ::failsafe::logger::log_with_level<LOGGER_LEVEL_INFO>(category, __FILE__, __LINE__, __VA_ARGS__)
+    (::failsafe::logger::get_config().min_level.load() > LOGGER_LEVEL_INFO) ? void() : \
+    (::failsafe::logger::log_with_level<LOGGER_LEVEL_INFO>(category, __FILE__, __LINE__, __VA_ARGS__), void())
+#else
+#define LOG_CAT_INFO(category, ...) ((void)0)
+#endif
 
 /**
- * @brief Log a warning message with custom category
+ * @brief Log a warning message with custom category (lazy evaluation)
  * @param category The log category string
  * @param ... Variable arguments for message formatting
  */
+#if LOGGER_MIN_LEVEL <= LOGGER_LEVEL_WARN
 #define LOG_CAT_WARN(category, ...) \
-    ::failsafe::logger::log_with_level<LOGGER_LEVEL_WARN>(category, __FILE__, __LINE__, __VA_ARGS__)
+    (::failsafe::logger::get_config().min_level.load() > LOGGER_LEVEL_WARN) ? void() : \
+    (::failsafe::logger::log_with_level<LOGGER_LEVEL_WARN>(category, __FILE__, __LINE__, __VA_ARGS__), void())
+#else
+#define LOG_CAT_WARN(category, ...) ((void)0)
+#endif
 
 /**
- * @brief Log an error message with custom category
+ * @brief Log an error message with custom category (lazy evaluation)
  * @param category The log category string
  * @param ... Variable arguments for message formatting
  */
+#if LOGGER_MIN_LEVEL <= LOGGER_LEVEL_ERROR
 #define LOG_CAT_ERROR(category, ...) \
-    ::failsafe::logger::log_with_level<LOGGER_LEVEL_ERROR>(category, __FILE__, __LINE__, __VA_ARGS__)
+    (::failsafe::logger::get_config().min_level.load() > LOGGER_LEVEL_ERROR) ? void() : \
+    (::failsafe::logger::log_with_level<LOGGER_LEVEL_ERROR>(category, __FILE__, __LINE__, __VA_ARGS__), void())
+#else
+#define LOG_CAT_ERROR(category, ...) ((void)0)
+#endif
 
 /**
- * @brief Log a fatal error message with custom category
+ * @brief Log a fatal error message with custom category (lazy evaluation)
  * @param category The log category string
  * @param ... Variable arguments for message formatting
  */
+#if LOGGER_MIN_LEVEL <= LOGGER_LEVEL_FATAL
 #define LOG_CAT_FATAL(category, ...) \
-    ::failsafe::logger::log_with_level<LOGGER_LEVEL_FATAL>(category, __FILE__, __LINE__, __VA_ARGS__)
+    (::failsafe::logger::get_config().min_level.load() > LOGGER_LEVEL_FATAL) ? void() : \
+    (::failsafe::logger::log_with_level<LOGGER_LEVEL_FATAL>(category, __FILE__, __LINE__, __VA_ARGS__), void())
+#else
+#define LOG_CAT_FATAL(category, ...) ((void)0)
+#endif
 
 /** @} */ // end of CategoryLogMacros group
 
@@ -509,3 +584,4 @@ namespace failsafe::logger {
     ::failsafe::logger::log(level, category, __FILE__, __LINE__, __VA_ARGS__)
 
 /** @} */ // end of ConditionalLogMacros group
+

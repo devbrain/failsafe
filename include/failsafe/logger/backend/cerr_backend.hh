@@ -20,6 +20,7 @@
 #include <chrono>
 #include <iomanip>
 #include <thread>
+#include <memory>
 #include <sstream>
 
 /**
@@ -157,7 +158,12 @@ namespace failsafe::logger::backends {
     inline logger::LoggerBackend make_cerr_backend(bool show_timestamp = true,
                                           bool show_thread_id = false,
                                           bool use_colors = true) {
-        return CerrBackend(show_timestamp, show_thread_id, use_colors);
+        // Use shared_ptr to handle the non-copyable mutex in CerrBackend
+        auto backend = std::make_shared<CerrBackend>(show_timestamp, show_thread_id, use_colors);
+        return [backend](int level, const char* category, const char* file, int line, 
+                        const std::string& message) {
+            (*backend)(level, category, file, line, message);
+        };
     }
     
     /**

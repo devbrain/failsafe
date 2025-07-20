@@ -7,6 +7,10 @@ add_executable(unittest
         test_exception_trap.cc
         test_enforce.cc
         test_location_format.cc
+        test_lazy_logging.cc
+        test_exception_chaining.cc
+        test_enforce_chaining.cc
+        test_compile_time_filtering.cc
 )
 
 # Add portability test as a separate executable

@@ -140,6 +140,7 @@ namespace failsafe::exception {
          * @brief Main exception throwing implementation
          * 
          * Handles different trap modes and exception types.
+         * Automatically chains with current exception if one exists.
          * 
          * @tparam Exception The exception type to throw
          * @tparam Args Variadic arguments for message formatting
@@ -176,15 +177,81 @@ namespace failsafe::exception {
                 std::ostringstream oss;
                 failsafe::detail::append_location(oss, file, line);
                 oss << " " << message;
-                throw Exception(oss.str());
+                
+                // Check if there's a current exception to chain with
+                if (std::current_exception()) {
+                    // Automatically chain with the current exception
+                    std::throw_with_nested(Exception(oss.str()));
+                } else {
+                    // No current exception, throw normally
+                    throw Exception(oss.str());
+                }
             } else {
-                // For exceptions without string constructor, just throw default constructed
-                throw Exception();
+                // For exceptions without string constructor
+                if (std::current_exception()) {
+                    std::throw_with_nested(Exception());
+                } else {
+                    throw Exception();
+                }
             }
 #endif
         }
     } // namespace failsafe::exception::internal
-} // namespace internal
+    
+    /**
+     * @brief Extract full exception trace from nested exceptions
+     * 
+     * Recursively extracts the exception chain created by automatic chaining
+     * in the THROW macro when used within catch blocks.
+     * 
+     * @param e The exception to extract trace from
+     * @param indent_level Current indentation level (for nested exceptions)
+     * @return String containing the full exception trace
+     * 
+     * @example
+     * @code
+     * try {
+     *     initialize_app();
+     * } catch (const std::exception& e) {
+     *     std::cerr << failsafe::exception::get_nested_trace(e) << std::endl;
+     *     // Output:
+     *     // → Failed to initialize application [at main.cc:45]
+     *     //   → Failed to load config [at config.cc:23]
+     *     //     → File not found: app.json [at file_io.cc:89]
+     * }
+     * @endcode
+     */
+    inline std::string get_nested_trace(const std::exception& e, int indent_level = 0) {
+        std::string indent(indent_level * 2, ' ');
+        std::string arrow = indent_level == 0 ? "→ " : "→ ";
+        std::string result = indent + arrow + e.what() + "\n";
+        
+        try {
+            std::rethrow_if_nested(e);
+        } catch (const std::exception& nested) {
+            result += get_nested_trace(nested, indent_level + 1);
+        } catch (...) {
+            result += indent + "  → [unknown nested exception]\n";
+        }
+        
+        return result;
+    }
+    
+    /**
+     * @brief Print exception trace to stderr
+     * 
+     * Convenience function that prints the full nested exception trace
+     * to standard error with a header.
+     * 
+     * @param e The exception to print
+     */
+    inline void print_exception_trace(const std::exception& e) {
+        std::cerr << "\n=== Exception Trace ===\n" 
+                  << get_nested_trace(e)
+                  << "=====================\n" << std::flush;
+    }
+    
+} // namespace failsafe::exception
 
 /**
  * @defgroup ExceptionMacros Exception Throwing Macros

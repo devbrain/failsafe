@@ -51,7 +51,7 @@ Failsafe is header-only. Simply copy the `include/failsafe` directory to your pr
 include(FetchContent)
 FetchContent_Declare(
     failsafe
-    GIT_REPOSITORY https://github.com/yourusername/failsafe.git
+    GIT_REPOSITORY https://github.com/devbrain/failsafe.git
     GIT_TAG main
 )
 FetchContent_MakeAvailable(failsafe)
@@ -88,6 +88,35 @@ LOG_DEBUG_IF(verbose, "Parser", "Token:", token, "at position:", pos);
 LOG_WARN("Network", "Retry attempt:", attempt, "of", max_retries);
 ```
 
+#### Automatic Lazy Evaluation
+
+All logging macros use lazy evaluation by default - expensive operations are only executed if the log level is enabled:
+
+```cpp
+// This expensive operation is ONLY called if DEBUG is enabled
+LOG_DEBUG("Result:", expensive_operation());
+
+// Works with all log levels
+LOG_INFO("Stats:", calculate_statistics(big_data));
+LOG_ERROR("Diagnostics:", generate_error_report());
+
+// Category-based logging is also lazy
+LOG_CAT_DEBUG("Database", "Query result:", execute_complex_query());
+```
+
+Performance example:
+```cpp
+// With DEBUG disabled, expensive_calculation() is never called!
+for (int i = 0; i < 1000000; ++i) {
+    LOG_DEBUG("Iteration:", i, "Result:", expensive_calculation(i));
+}
+```
+
+This means:
+- No need to wrap expensive operations in `if (log_level >= DEBUG)` checks
+- No performance penalty for detailed logging in production
+- Clean, readable code without manual optimization
+
 Configure the logger:
 
 ```cpp
@@ -122,7 +151,7 @@ auto data = ENFORCE_THROW(load_data(), std::invalid_argument);
 
 ### Exception
 
-Enhanced exception throwing with automatic source location:
+Enhanced exception throwing with automatic source location and exception chaining:
 
 ```cpp
 // Basic throwing
@@ -135,6 +164,55 @@ THROW_UNLESS(is_valid(), std::logic_error, "Invalid state");
 // Debug helpers
 TRAP_IF(critical_error, "Critical error in module:", module_name);
 DEBUG_TRAP_RELEASE_THROW(std::runtime_error, "Should not reach here");
+```
+
+#### Automatic Exception Chaining
+
+When THROW is used inside a catch block, it automatically chains exceptions:
+
+```cpp
+void read_config() {
+    THROW(std::runtime_error, "File not found");
+}
+
+void load_settings() {
+    try {
+        read_config();
+    } catch (...) {
+        // Automatically chains with caught exception!
+        THROW(std::runtime_error, "Failed to load settings");
+    }
+}
+
+void initialize() {
+    try {
+        load_settings();
+    } catch (...) {
+        THROW(std::runtime_error, "Initialization failed");
+    }
+}
+
+// Usage
+try {
+    initialize();
+} catch (const std::exception& e) {
+    std::cerr << failsafe::exception::get_nested_trace(e);
+    // Output:
+    // → Initialization failed [at app.cc:25]
+    //   → Failed to load settings [at app.cc:18]
+    //     → File not found [at app.cc:10]
+}
+```
+
+This works seamlessly with ENFORCE as well:
+
+```cpp
+try {
+    auto ptr = ENFORCE(allocate_memory())("Allocation failed");
+} catch (...) {
+    // ENFORCE errors are automatically chained too!
+    THROW(std::runtime_error, "Resource acquisition failed");
+}
 ```
 
 ### String Utilities
@@ -163,8 +241,9 @@ auto limited = build_message("Data:", container(data, 3));  // "[1, 2, 3, ...]"
 Define these before including failsafe headers:
 
 ```cpp
-// Set minimum log level (completely removes lower levels)
-#define LOGGER_MIN_LEVEL LOGGER_LEVEL_INFO
+// Set minimum log level (completely removes lower levels at compile time)
+// Default is LOGGER_LEVEL_TRACE (all levels enabled)
+#define LOGGER_MIN_LEVEL LOGGER_LEVEL_INFO  // For production builds
 
 // Set default exception type
 #define FAILSAFE_DEFAULT_EXCEPTION MyCustomException

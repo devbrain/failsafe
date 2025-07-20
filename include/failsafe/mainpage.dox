@@ -23,6 +23,7 @@
  * 
  * A flexible, thread-safe logging system with:
  * - Multiple log levels (TRACE, DEBUG, INFO, WARN, ERROR, FATAL)
+ * - Automatic lazy evaluation - arguments are only evaluated if the log level is enabled
  * - Compile-time and runtime level filtering
  * - Category-based logging
  * - Pluggable backend system
@@ -32,6 +33,9 @@
  * // Basic usage
  * LOG_INFO("MyApp", "Starting application version:", version);
  * LOG_ERROR("Network", "Connection failed:", error_code, "retrying in", retry_seconds, "seconds");
+ * 
+ * // Lazy evaluation - expensive_query() is only called if DEBUG is enabled
+ * LOG_DEBUG("Database", "Query result:", expensive_query());
  * 
  * // Conditional logging
  * LOG_INFO_IF(verbose_mode, "Debug", "Detailed information:", data);
@@ -107,7 +111,8 @@
  * 
  * Define these macros before including failsafe headers:
  * 
- * - `LOGGER_MIN_LEVEL`: Minimum log level to compile (default: TRACE)
+ * - `LOGGER_MIN_LEVEL`: Minimum log level to compile (default: TRACE - all levels enabled)
+ *   - Set to `LOGGER_LEVEL_INFO` or higher for production builds to remove debug/trace logs
  * - `FAILSAFE_DEFAULT_EXCEPTION`: Default exception type (default: std::runtime_error)
  * - `FAILSAFE_TRAP_MODE`: Debug trap behavior (0: normal, 1: trap+throw, 2: trap only)
  * - `FAILSAFE_LOCATION_FORMAT_STYLE`: Location format style (0-5)
@@ -233,10 +238,22 @@
  * @section performance_sec Performance Considerations
  * 
  * - **Compile-time filtering**: Log statements below `LOGGER_MIN_LEVEL` are completely removed
+ * - **Automatic lazy evaluation**: All logging macros use lazy evaluation by default
+ *   - Arguments are only evaluated if the log level is enabled
+ *   - No performance penalty for detailed logging in production
+ *   - No need for manual `if (log_level >= DEBUG)` checks
  * - **Zero-cost abstractions**: Disabled features have no runtime overhead
  * - **Efficient formatting**: Uses variadic templates for type-safe, efficient message building
  * - **Backend flexibility**: Choose backends based on performance requirements
  * - **Header-only**: No linking overhead, allows full optimization
+ * 
+ * @code
+ * // Example: This loop has zero overhead when DEBUG is disabled
+ * for (int i = 0; i < 1000000; ++i) {
+ *     LOG_DEBUG("Processing item", i, "with result:", expensive_calculation(i));
+ *     // expensive_calculation() is NEVER called if DEBUG is disabled
+ * }
+ * @endcode
  * 
  * @section best_practices_sec Best Practices
  * 
