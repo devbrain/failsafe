@@ -5,9 +5,9 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Build options
-option(BUILD_WITH_TESTS "Build unit tests" ON)
-option(BUILD_EXAMPLES "Build example programs" ON)
-option(BUILD_DOCUMENTATION "Build documentation with Doxygen" OFF)
+option(FAILSAFE_BUILD_WITH_TESTS "Build unit tests" OFF)
+option(FAILSAFE_BUILD_EXAMPLES "Build example programs" OFF)
+option(FAILSAFE_BUILD_DOCUMENTATION "Build documentation with Doxygen" OFF)
 
 # Define warning flags for our project
 set(FAILSAFE_WARNING_FLAGS)
@@ -15,7 +15,7 @@ set(FAILSAFE_WARNING_FLAGS)
 add_library(failsafe INTERFACE)
 target_include_directories(failsafe INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-if(BUILD_WITH_TESTS)
+if(FAILSAFE_BUILD_WITH_TESTS)
     # Include FetchContent module for downloading test dependencies
     include(FetchContent)
     set(FETCHCONTENT_QUIET off)
@@ -26,12 +26,12 @@ if(BUILD_WITH_TESTS)
 endif()
 
 # Build examples if requested
-if(BUILD_EXAMPLES)
+if(FAILSAFE_BUILD_EXAMPLES)
     add_subdirectory(examples)
 endif()
 
 # Documentation building
-if(BUILD_DOCUMENTATION)
+if(FAILSAFE_BUILD_DOCUMENTATION)
     find_package(Doxygen QUIET COMPONENTS dot)
     if(DOXYGEN_FOUND)
         message(STATUS "Doxygen found: ${DOXYGEN_EXECUTABLE}")
