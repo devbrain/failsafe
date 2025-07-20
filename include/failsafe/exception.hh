@@ -221,8 +221,8 @@ namespace failsafe::exception {
      * }
      * @endcode
      */
-    inline std::string get_nested_trace(const std::exception& e, int indent_level = 0) {
-        std::string indent(indent_level * 2, ' ');
+    inline std::string get_nested_trace(const std::exception& e, unsigned int indent_level = 0) {
+        std::string indent(indent_level * 2u, ' ');
         std::string arrow = indent_level == 0 ? "→ " : "→ ";
         std::string result = indent + arrow + e.what() + "\n";
         
