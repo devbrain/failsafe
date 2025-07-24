@@ -1,4 +1,4 @@
-add_executable(unittest
+add_executable(failsafe_unittest
     main.cc
         test_string_formatters.cc
         test_string_utils.cc
@@ -53,5 +53,5 @@ elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     )
 endif()
 
-target_link_libraries(unittest PRIVATE failsafe thirdparty::doctest)
-target_compile_options(unittest PRIVATE ${FAILSAFE_WARNING_FLAG})
+target_link_libraries(failsafe_unittest PRIVATE failsafe thirdparty::doctest)
+target_compile_options(failsafe_unittest PRIVATE ${FAILSAFE_WARNING_FLAGS})

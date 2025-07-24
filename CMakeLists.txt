@@ -1,11 +1,14 @@
 cmake_minimum_required(VERSION 3.20)
-project(failsafe)
+project(failsafe
+    VERSION 1.0.0
+    DESCRIPTION "A header-only C++ error handling library"
+    LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Build options
-option(FAILSAFE_BUILD_WITH_TESTS "Build unit tests" OFF)
+option(FAILSAFE_BUILD_WITH_TESTS "Build unit tests" ON)
 option(FAILSAFE_BUILD_EXAMPLES "Build example programs" OFF)
 option(FAILSAFE_BUILD_DOCUMENTATION "Build documentation with Doxygen" OFF)
 
@@ -13,15 +16,57 @@ option(FAILSAFE_BUILD_DOCUMENTATION "Build documentation with Doxygen" OFF)
 set(FAILSAFE_WARNING_FLAGS)
 
 add_library(failsafe INTERFACE)
-target_include_directories(failsafe INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_include_directories(failsafe INTERFACE 
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
+
+# Specify required C++ features instead of just the standard
+target_compile_features(failsafe INTERFACE
+    cxx_std_17
+    cxx_constexpr
+    cxx_noexcept
+    cxx_nullptr
+    cxx_auto_type
+    cxx_decltype
+    cxx_static_assert
+    cxx_variadic_templates
+    cxx_rvalue_references
+    cxx_override
+    cxx_final
+    cxx_deleted_functions
+    cxx_defaulted_functions
+)
+
+# Installation rules
+include(GNUInstallDirs)
+install(DIRECTORY include/
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    FILES_MATCHING PATTERN "*.h" PATTERN "*.hh"
+)
+
+install(TARGETS failsafe
+    EXPORT failsafeTargets
+    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
 
 if(FAILSAFE_BUILD_WITH_TESTS)
-    # Include FetchContent module for downloading test dependencies
-    include(FetchContent)
-    set(FETCHCONTENT_QUIET off)
+    # Try to find installed doctest first
+    find_package(doctest 2.4 QUIET)
     
-    # Only fetch doctest when building tests
-    add_subdirectory(ext/doctest)
+    if(doctest_FOUND)
+        message(STATUS "Found installed doctest: ${doctest_VERSION}")
+        add_library(thirdparty::doctest ALIAS doctest::doctest)
+    else()
+        message(STATUS "doctest not found, will fetch from GitHub")
+        # Include FetchContent module for downloading test dependencies
+        include(FetchContent)
+        set(FETCHCONTENT_QUIET off)
+        
+        # Only fetch doctest when building tests
+        add_subdirectory(ext/doctest)
+    endif()
+    
     add_subdirectory(test)
 endif()
 
@@ -117,4 +162,34 @@ message(STATUS "  Build tests: ${FAILSAFE_BUILD_WITH_TESTS}")
 message(STATUS "  Build examples: ${FAILSAFE_BUILD_EXAMPLES}")
 message(STATUS "  Build documentation: ${FAILSAFE_BUILD_DOCUMENTATION}")
 message(STATUS "")
+
+# CMake package configuration
+include(CMakePackageConfigHelpers)
+
+# Create package config file
+configure_package_config_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/cmake/failsafeConfig.cmake.in
+    ${CMAKE_CURRENT_BINARY_DIR}/failsafeConfig.cmake
+    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/failsafe
+)
+
+# Create version file
+write_basic_package_version_file(
+    ${CMAKE_CURRENT_BINARY_DIR}/failsafeConfigVersion.cmake
+    VERSION ${PROJECT_VERSION}
+    COMPATIBILITY AnyNewerVersion
+)
+
+# Install CMake files
+install(EXPORT failsafeTargets
+    FILE failsafeTargets.cmake
+    NAMESPACE failsafe::
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/failsafe
+)
+
+install(FILES
+    ${CMAKE_CURRENT_BINARY_DIR}/failsafeConfig.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/failsafeConfigVersion.cmake
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/failsafe
+)
 

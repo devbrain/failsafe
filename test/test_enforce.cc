@@ -74,6 +74,7 @@ TEST_SUITE("Enforce Mechanism") {
             CHECK_THROWS(ENFORCE_NOT_NULL(null_ptr));
         }
     }
+
     
     TEST_CASE("Comparison enforcements") {
         SUBCASE("ENFORCE_EQ") {
@@ -130,7 +131,7 @@ TEST_SUITE("Enforce Mechanism") {
     }
     
     TEST_CASE("Index validation") {
-        std::vector<int> vec = {1, 2, 3, 4, 5};
+        std::vector<unsigned int> vec = {1, 2, 3, 4, 5};
         
         SUBCASE("Valid indices") {
             for (size_t i = 0; i < vec.size(); ++i) {
@@ -141,7 +142,7 @@ TEST_SUITE("Enforce Mechanism") {
         SUBCASE("Invalid indices") {
             CHECK_THROWS(ENFORCE_VALID_INDEX(-1, vec.size()));
             CHECK_THROWS(ENFORCE_VALID_INDEX(vec.size(), vec.size()));
-            CHECK_THROWS(ENFORCE_VALID_INDEX(100, vec.size()));
+            CHECK_THROWS(ENFORCE_VALID_INDEX(100u, vec.size()));
         }
     }
     
