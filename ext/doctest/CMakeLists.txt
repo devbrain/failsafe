@@ -8,4 +8,4 @@ fetchcontent_declare(
         UPDATE_COMMAND ""
 )
 fetchcontent_makeavailable(DOCTEST)
-add_library(thirdparty::doctest ALIAS doctest)
+

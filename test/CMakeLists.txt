@@ -53,5 +53,5 @@ elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     )
 endif()
 
-target_link_libraries(failsafe_unittest PRIVATE failsafe thirdparty::doctest)
+target_link_libraries(failsafe_unittest PRIVATE failsafe doctest::doctest)
 target_compile_options(failsafe_unittest PRIVATE ${FAILSAFE_WARNING_FLAGS})
