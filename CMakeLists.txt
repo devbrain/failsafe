@@ -56,7 +56,6 @@ if(FAILSAFE_BUILD_WITH_TESTS)
     
     if(doctest_FOUND)
         message(STATUS "Found installed doctest: ${doctest_VERSION}")
-        add_library(thirdparty::doctest ALIAS doctest::doctest)
     else()
         message(STATUS "doctest not found, will fetch from GitHub")
         # Include FetchContent module for downloading test dependencies
