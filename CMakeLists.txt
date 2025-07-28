@@ -8,7 +8,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Build options
-option(FAILSAFE_BUILD_WITH_TESTS "Build unit tests" ON)
+option(FAILSAFE_BUILD_WITH_TESTS "Build unit tests" OFF)
 option(FAILSAFE_BUILD_EXAMPLES "Build example programs" OFF)
 option(FAILSAFE_BUILD_DOCUMENTATION "Build documentation with Doxygen" OFF)
 
