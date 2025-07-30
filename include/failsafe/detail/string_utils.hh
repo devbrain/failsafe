@@ -26,6 +26,29 @@
 #include <unordered_set>
 #include <unordered_map>
 
+// Include utf8cpp for wstring conversion
+// Suppress sign conversion warnings from utf8.h template instantiations
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable: 4365) // signed/unsigned mismatch
+#elif defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wsign-conversion"
+#elif defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
+#include <utf8.h>
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#elif defined(__clang__)
+#pragma clang diagnostic pop
+#elif defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
+
 // C++20 feature detection
 #if __cplusplus >= 202002L
     #include <concepts>
@@ -285,7 +308,9 @@ namespace failsafe::detail {
     template<typename T>
     concept is_string_like = std::is_same_v<std::remove_cvref_t<T>, std::string> ||
                              std::is_same_v<std::remove_cvref_t<T>, std::string_view> ||
-                             std::is_convertible_v<T, const char*>;
+                             std::is_same_v<std::remove_cvref_t<T>, std::wstring> ||
+                             std::is_convertible_v<T, const char*> ||
+                             std::is_convertible_v<T, const wchar_t*>;
 #else
     // C++17: Use SFINAE detection
     template<typename T, typename = void>
@@ -333,7 +358,9 @@ namespace failsafe::detail {
     inline constexpr bool is_string_like_v = 
         std::is_same_v<std::remove_cvref_t<T>, std::string> ||
         std::is_same_v<std::remove_cvref_t<T>, std::string_view> ||
-        std::is_convertible_v<T, const char*>;
+        std::is_same_v<std::remove_cvref_t<T>, std::wstring> ||
+        std::is_convertible_v<T, const char*> ||
+        std::is_convertible_v<T, const wchar_t*>;
 #endif
 
 #if FAILSAFE_HAS_CONCEPTS
@@ -1068,6 +1095,19 @@ namespace failsafe::detail {
                 }
             }, value);
         }
+        // Handle std::wstring before containers to avoid treating it as a container
+        else if constexpr (std::is_same_v<DecayT, std::wstring>) {
+            std::string utf8_string;
+            // Check the size of wchar_t to determine encoding
+            if constexpr (sizeof(wchar_t) == 2) {
+                // Windows: UTF-16
+                utf8::utf16to8(value.begin(), value.end(), std::back_inserter(utf8_string));
+            } else if constexpr (sizeof(wchar_t) == 4) {
+                // Linux/Unix: UTF-32
+                utf8::utf32to8(value.begin(), value.end(), std::back_inserter(utf8_string));
+            }
+            oss << utf8_string;
+        }
         // Handle containers (vector, list, set, map, etc.) - must come before tuple check
         // because std::array has tuple_size but should be treated as a container
 #if FAILSAFE_HAS_CONCEPTS
@@ -1153,6 +1193,77 @@ namespace failsafe::detail {
         else {
             oss << std::forward <T>(value);
         }
+    }
+
+    /**
+     * @brief Specialization for std::wstring to handle UTF-16/UTF-32 to UTF-8 conversion
+     */
+    inline void append_to_stream(std::ostringstream& oss, const std::wstring& value) {
+        std::string utf8_string;
+        
+        // Check the size of wchar_t to determine encoding
+        if constexpr (sizeof(wchar_t) == 2) {
+            // Windows: UTF-16
+            utf8::utf16to8(value.begin(), value.end(), std::back_inserter(utf8_string));
+        } else if constexpr (sizeof(wchar_t) == 4) {
+            // Linux/Unix: UTF-32
+            utf8::utf32to8(value.begin(), value.end(), std::back_inserter(utf8_string));
+        }
+        
+        oss << utf8_string;
+    }
+
+    /**
+     * @brief Overload for non-const std::wstring
+     */
+    inline void append_to_stream(std::ostringstream& oss, std::wstring& value) {
+        append_to_stream(oss, static_cast<const std::wstring&>(value));
+    }
+
+    /**
+     * @brief Overload for rvalue std::wstring
+     */
+    inline void append_to_stream(std::ostringstream& oss, std::wstring&& value) {
+        append_to_stream(oss, static_cast<const std::wstring&>(value));
+    }
+
+    /**
+     * @brief Specialization for const wchar_t* (wide string literals)
+     */
+    inline void append_to_stream(std::ostringstream& oss, const wchar_t* value) {
+        if (value) {
+            append_to_stream(oss, std::wstring(value));
+        } else {
+            oss << "nullptr";
+        }
+    }
+
+    /**
+     * @brief Overload for non-const wchar_t*
+     */
+    inline void append_to_stream(std::ostringstream& oss, wchar_t* value) {
+        append_to_stream(oss, static_cast<const wchar_t*>(value));
+    }
+
+    /**
+     * @brief Specialization for std::wstring_view
+     */
+    inline void append_to_stream(std::ostringstream& oss, const std::wstring_view& value) {
+        append_to_stream(oss, std::wstring(value));
+    }
+
+    /**
+     * @brief Overload for non-const std::wstring_view
+     */
+    inline void append_to_stream(std::ostringstream& oss, std::wstring_view& value) {
+        append_to_stream(oss, static_cast<const std::wstring_view&>(value));
+    }
+
+    /**
+     * @brief Overload for rvalue std::wstring_view
+     */
+    inline void append_to_stream(std::ostringstream& oss, std::wstring_view&& value) {
+        append_to_stream(oss, static_cast<const std::wstring_view&>(value));
     }
 
     /**

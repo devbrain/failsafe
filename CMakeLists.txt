@@ -8,18 +8,57 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Build options
-option(FAILSAFE_BUILD_WITH_TESTS "Build unit tests" OFF)
-option(FAILSAFE_BUILD_EXAMPLES "Build example programs" OFF)
+option(FAILSAFE_BUILD_WITH_TESTS "Build unit tests" ON)
+option(FAILSAFE_BUILD_EXAMPLES "Build example programs" ON)
 option(FAILSAFE_BUILD_DOCUMENTATION "Build documentation with Doxygen" OFF)
 
 # Define warning flags for our project
 set(FAILSAFE_WARNING_FLAGS)
+
+# Try to find installed libraries first
+find_package(termcolor QUIET)
+find_package(utf8cpp QUIET)
+
+# Track which dependencies were fetched
+set(FAILSAFE_FETCHED_TERMCOLOR FALSE)
+set(FAILSAFE_FETCHED_UTF8CPP FALSE)
+
+# Handle termcolor
+if(termcolor_FOUND)
+    message(STATUS "Found installed termcolor")
+else()
+    message(STATUS "termcolor not found, will fetch from GitHub")
+    add_subdirectory(ext/termcolor)
+    set(FAILSAFE_FETCHED_TERMCOLOR TRUE)
+endif()
+
+# Handle utf8cpp
+if(utf8cpp_FOUND)
+    message(STATUS "Found installed utf8cpp")
+else()
+    message(STATUS "utf8cpp not found, will fetch from GitHub")
+    add_subdirectory(ext/utfcpp)
+    set(FAILSAFE_FETCHED_UTF8CPP TRUE)
+endif()
 
 add_library(failsafe INTERFACE)
 target_include_directories(failsafe INTERFACE 
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
 )
+
+# Link to the appropriate targets
+if(termcolor_FOUND)
+    target_link_libraries(failsafe INTERFACE termcolor::termcolor)
+else()
+    target_link_libraries(failsafe INTERFACE termcolor)
+endif()
+
+if(utf8cpp_FOUND)
+    target_link_libraries(failsafe INTERFACE utf8cpp::utf8cpp)
+else()
+    target_link_libraries(failsafe INTERFACE utf8cpp)
+endif()
 
 # Specify required C++ features instead of just the standard
 target_compile_features(failsafe INTERFACE
@@ -53,6 +92,7 @@ install(TARGETS failsafe
 if(FAILSAFE_BUILD_WITH_TESTS)
     # Try to find installed doctest first
     find_package(doctest 2.4 QUIET)
+    set(FAILSAFE_FETCHED_DOCTEST FALSE)
     
     if(doctest_FOUND)
         message(STATUS "Found installed doctest: ${doctest_VERSION}")
@@ -64,6 +104,7 @@ if(FAILSAFE_BUILD_WITH_TESTS)
         
         # Only fetch doctest when building tests
         add_subdirectory(ext/doctest)
+        set(FAILSAFE_FETCHED_DOCTEST TRUE)
     endif()
     
     add_subdirectory(test)
@@ -161,6 +202,33 @@ message(STATUS "  Build tests: ${FAILSAFE_BUILD_WITH_TESTS}")
 message(STATUS "  Build examples: ${FAILSAFE_BUILD_EXAMPLES}")
 message(STATUS "  Build documentation: ${FAILSAFE_BUILD_DOCUMENTATION}")
 message(STATUS "")
+
+# Install fetched dependencies if they were not found on the system
+if(FAILSAFE_FETCHED_TERMCOLOR)
+    install(TARGETS termcolor
+        EXPORT failsafeTargets
+        INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    )
+    install(DIRECTORY ${TERMCOLOR_SOURCE_DIR}/include/
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+        FILES_MATCHING PATTERN "*.hpp"
+    )
+endif()
+
+if(FAILSAFE_FETCHED_UTF8CPP)
+    install(TARGETS utf8cpp
+        EXPORT failsafeTargets
+        INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    )
+    install(FILES ${UTFCPP_SOURCE_DIR}/source/utf8.h
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/utf8cpp
+    )
+    install(DIRECTORY ${UTFCPP_SOURCE_DIR}/source/utf8
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/utf8cpp
+    )
+endif()
+
+# Note: doctest is only needed for tests, so we don't install it
 
 # CMake package configuration
 include(CMakePackageConfigHelpers)

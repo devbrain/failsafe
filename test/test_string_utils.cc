@@ -553,4 +553,75 @@ TEST_SUITE("string_utils") {
             CHECK(build_message("Empty:", opt) == "Empty: nullopt");
         }
     }
+
+    TEST_CASE("build_message with wstring") {
+        SUBCASE("basic wstring") {
+            std::wstring ws = L"Hello World";
+            CHECK(build_message("Wide:", ws) == "Wide: Hello World");
+        }
+
+        SUBCASE("wstring with unicode characters") {
+            std::wstring ws = L"Hello 世界 🌍";
+            CHECK(build_message("Unicode:", ws) == "Unicode: Hello 世界 🌍");
+        }
+
+        SUBCASE("empty wstring") {
+            std::wstring ws = L"";
+            CHECK(build_message("Empty:", ws) == "Empty: ");
+        }
+
+        SUBCASE("wchar_t pointer") {
+            const wchar_t* wcs = L"Wide C-string";
+            CHECK(build_message("WChar:", wcs) == "WChar: Wide C-string");
+        }
+
+        SUBCASE("null wchar_t pointer") {
+            const wchar_t* wcs = nullptr;
+            CHECK(build_message("Null:", wcs) == "Null: nullptr");
+        }
+
+        SUBCASE("wstring with special characters") {
+            std::wstring ws = L"Line1\nLine2\tTab";
+            CHECK(build_message("Special:", ws) == "Special: Line1\nLine2\tTab");
+        }
+
+        SUBCASE("mixed string types") {
+            std::string s = "Regular";
+            std::wstring ws = L"Wide";
+            CHECK(build_message(s, "and", ws, "strings") == "Regular and Wide strings");
+        }
+
+        SUBCASE("wstring in container") {
+            std::vector<std::wstring> vec = {L"one", L"two", L"three"};
+            CHECK(build_message("Vector:", vec) == "Vector: [one, two, three]");
+        }
+
+        SUBCASE("wstring in pair") {
+            auto p = std::make_pair(std::wstring(L"wide"), 123);
+            CHECK(build_message("Pair:", p) == "Pair: (wide, 123)");
+        }
+
+        SUBCASE("wstring in optional") {
+            std::optional<std::wstring> opt = L"optional wide";
+            CHECK(build_message("Optional:", opt) == "Optional: optional wide");
+            
+            std::optional<std::wstring> empty;
+            CHECK(build_message("Empty:", empty) == "Empty: nullopt");
+        }
+
+        SUBCASE("wstring with emojis and complex unicode") {
+            std::wstring ws = L"👋 Hello 🌏 世界 🎉";
+            CHECK(build_message("Emoji:", ws) == "Emoji: 👋 Hello 🌏 世界 🎉");
+        }
+
+        SUBCASE("wstring with uppercase formatter") {
+            std::wstring ws = L"hello world";
+            CHECK(build_message("Upper:", uppercase(ws)) == "Upper: HELLO WORLD");
+        }
+
+        SUBCASE("wstring with lowercase formatter") {
+            std::wstring ws = L"HELLO WORLD";
+            CHECK(build_message("Lower:", lowercase(ws)) == "Lower: hello world");
+        }
+    }
 }

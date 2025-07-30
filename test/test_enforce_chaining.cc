@@ -3,7 +3,7 @@
 #include <failsafe/exception.hh>
 
 // Function that uses enforce
-void* allocate_memory(size_t size) {
+void* allocate_memory([[maybe_unused]] size_t size) {
     // Simulate allocation failure
     return nullptr;
 }
@@ -106,7 +106,7 @@ TEST_CASE("Enforce chaining in realistic scenarios") {
     using namespace failsafe;
     
     SUBCASE("File operation with enforce") {
-        auto open_config_file = [](const char* path) -> FILE* {
+        auto open_config_file = [](const char* ) -> FILE* {
             return nullptr; // Simulate failure
         };
         

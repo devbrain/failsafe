@@ -441,6 +441,23 @@ namespace failsafe::enforce {
     
 } // namespace failsafe::enforce
 
+namespace failsafe::detail {
+    /**
+     * @brief Helper function to check if an index is valid
+     * 
+     * For unsigned types, only checks upper bound.
+     * For signed types, checks both bounds.
+     */
+    template<typename IndexT, typename SizeT>
+    inline constexpr bool is_valid_index(IndexT index, SizeT size) noexcept {
+        if constexpr (std::is_unsigned_v<IndexT>) {
+            return index < size;
+        } else {
+            return index >= 0 && static_cast<std::make_unsigned_t<IndexT>>(index) < size;
+        }
+    }
+} // namespace failsafe::detail
+
 /**
  * @defgroup EnforceMacros Enforcement Macros
  * @{
@@ -541,9 +558,11 @@ namespace failsafe::enforce {
  * 
  * @param index Index to validate
  * @param size Array size
+ * 
+ * For unsigned types, only checks upper bound. For signed types, checks both bounds.
  */
 #define ENFORCE_VALID_INDEX(index, size) \
-    ENFORCE((index) >= 0 && (index) < (size))("Index out of bounds: ", (index), " not in [0, ", (size), ")")
+    ENFORCE(::failsafe::detail::is_valid_index(index, size))("Index out of bounds: ", (index), " not in [0, ", (size), ")")
 
 /**
  * @brief Debug-only enforcement

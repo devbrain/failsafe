@@ -140,6 +140,7 @@ namespace failsafe::logger {
          * @brief Default logging backend that writes to std::cerr
          * 
          * Thread-safe implementation that formats and outputs log messages to stderr.
+         * This is a simplified version - for more features use cerr_backend.hh
          * 
          * @param level Log level
          * @param category Log category
@@ -150,6 +151,7 @@ namespace failsafe::logger {
         inline void default_cerr_backend(int level, const char* category,
                                          const char* file, int line,
                                          const std::string& message) {
+            // Use a static mutex for thread safety
             static std::mutex cerr_mutex;
             std::lock_guard <std::mutex> lock(cerr_mutex);
 
@@ -211,6 +213,9 @@ namespace failsafe::logger {
      * 
      * @param backend New backend function or nullptr to reset to default
      * 
+     * @note For pre-built backends with advanced features, see:
+     * - cerr_backend.hh for stderr output with colors, timestamps, thread IDs
+     * 
      * @example
      * @code
      * // Custom backend that writes to a file
@@ -219,6 +224,10 @@ namespace failsafe::logger {
      *                            const std::string& msg) {
      *     file << "[" << cat << "] " << msg << std::endl;
      * });
+     * 
+     * // Or use a pre-built backend with features
+     * #include <failsafe/logger/backend/cerr_backend.hh>
+     * logger::set_backend(failsafe::logger::backends::make_cerr_backend(true, true, true));
      * @endcode
      */
     inline void set_backend(LoggerBackend backend) {
@@ -232,6 +241,13 @@ namespace failsafe::logger {
 
     /**
      * @brief Reset logger backend to default (cerr)
+     * 
+     * @note For more advanced cerr backend features (timestamps, colors, thread IDs),
+     * use the cerr_backend.hh implementations:
+     * @code
+     * #include <failsafe/logger/backend/cerr_backend.hh>
+     * logger::set_backend(failsafe::logger::backends::make_cerr_backend(true, true, true));
+     * @endcode
      */
     inline void reset_backend() {
         get_config().backend = internal::default_cerr_backend;

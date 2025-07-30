@@ -1,5 +1,22 @@
 @PACKAGE_INIT@
 
+include(CMakeFindDependencyMacro)
+
+# Check which dependencies were bundled
+set(FAILSAFE_BUNDLED_TERMCOLOR @FAILSAFE_FETCHED_TERMCOLOR@)
+set(FAILSAFE_BUNDLED_UTF8CPP @FAILSAFE_FETCHED_UTF8CPP@)
+
+# Find or use bundled dependencies
+if(NOT FAILSAFE_BUNDLED_TERMCOLOR)
+    find_dependency(termcolor REQUIRED)
+endif()
+
+if(NOT FAILSAFE_BUNDLED_UTF8CPP)
+    find_dependency(utf8cpp REQUIRED)
+endif()
+
+# Include the targets file which will define failsafe::failsafe
+# and any bundled dependencies
 include("${CMAKE_CURRENT_LIST_DIR}/failsafeTargets.cmake")
 
 check_required_components(failsafe)

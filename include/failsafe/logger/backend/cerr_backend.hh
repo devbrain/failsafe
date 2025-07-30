@@ -15,6 +15,7 @@
 
 #include <failsafe/logger.hh>
 #include <failsafe/detail/location_format.hh>
+
 #include <iostream>
 #include <mutex>
 #include <chrono>
@@ -22,6 +23,15 @@
 #include <thread>
 #include <memory>
 #include <sstream>
+
+#if defined(_MSC_VER)
+#if !defined(NOMINMAX)
+#define NOMINMAX
+#define FAILSAFE_UNDEF_NOMINMAX
+#endif
+#endif
+
+#include <termcolor/termcolor.hpp>
 
 /**
  * @namespace failsafe::logger::backends
@@ -114,17 +124,17 @@ namespace failsafe::logger::backends {
                 // Apply ANSI color codes based on log level
                 if (use_colors_) {
                     switch (level) {
-                        case LOGGER_LEVEL_TRACE: std::cerr << "\033[37m";
+                        case LOGGER_LEVEL_TRACE: std::cerr << termcolor::white;
                             break; // White
-                        case LOGGER_LEVEL_DEBUG: std::cerr << "\033[36m";
+                        case LOGGER_LEVEL_DEBUG: std::cerr << termcolor::cyan;
                             break; // Cyan
-                        case LOGGER_LEVEL_INFO: std::cerr << "\033[32m";
+                        case LOGGER_LEVEL_INFO: std::cerr << termcolor::green;
                             break; // Green
-                        case LOGGER_LEVEL_WARN: std::cerr << "\033[33m";
+                        case LOGGER_LEVEL_WARN: std::cerr << termcolor::yellow;
                             break; // Yellow
-                        case LOGGER_LEVEL_ERROR: std::cerr << "\033[31m";
+                        case LOGGER_LEVEL_ERROR: std::cerr << termcolor::red;
                             break; // Red
-                        default: std::cerr << "\033[35m";
+                        default: std::cerr << termcolor::magenta;
                             break; // Magenta
                     }
                 }
@@ -135,7 +145,7 @@ namespace failsafe::logger::backends {
 
                 // Reset color
                 if (use_colors_) {
-                    std::cerr << "\033[0m";
+                    std::cerr << termcolor::reset;
                 }
 
                 // Location and message
@@ -200,3 +210,9 @@ namespace failsafe::logger::backends {
             << message << std::endl;
     }
 }
+
+#if defined(FAILSAFE_UNDEF_NOMINMAX)
+#if defined(NOMINMAX)
+#undef NOMINMAX
+#endif
+#endif
