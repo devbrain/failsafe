@@ -150,9 +150,7 @@ namespace failsafe::exception {
          * @internal
          */
         template<typename Exception, typename... Args>
-#if FAILSAFE_TRAP_MODE == 2
         [[noreturn]]
-#endif
         inline void throw_exception(const char* file, int line, Args&&... args) {
             // Build the message first
             std::string message = failsafe::detail::build_message(std::forward <Args>(args)...);
