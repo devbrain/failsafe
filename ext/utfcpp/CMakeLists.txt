@@ -6,17 +6,19 @@ if(POLICY CMP0169)
     cmake_policy(SET CMP0169 OLD)
 endif()
 
+
 fetchcontent_declare(
-        UTFCPP
-        GIT_REPOSITORY "https://github.com/nemtrif/utfcpp.git"
-        GIT_TAG v4.0.6
-        GIT_PROGRESS TRUE
-        UPDATE_COMMAND ""
-        # Patch the CMakeLists.txt after downloading
-        PATCH_COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                      ${CMAKE_CURRENT_SOURCE_DIR}/utfcpp-no-install.cmake
-                      <SOURCE_DIR>/CMakeLists.txt
-)
+      UTFCPP
+      GIT_REPOSITORY "https://github.com/nemtrif/utfcpp.git"
+      GIT_TAG v4.0.6
+      GIT_PROGRESS TRUE
+      GIT_SUBMODULES ""       # ← ADD THIS: Don't clone ftest submodule
+      GIT_SHALLOW TRUE        # ← ADD THIS: Shallow clone for speed
+      UPDATE_COMMAND ""
+      PATCH_COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                    ${CMAKE_CURRENT_SOURCE_DIR}/utfcpp-no-install.cmake
+                    <SOURCE_DIR>/CMakeLists.txt
+  )
 
 # Only populate, don't add subdirectory yet
 FetchContent_GetProperties(UTFCPP)
