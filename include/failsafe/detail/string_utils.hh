@@ -1209,7 +1209,10 @@ namespace failsafe::detail {
             utf8::utf16to8(value.begin(), value.end(), std::back_inserter(utf8_string));
         } else if constexpr (sizeof(wchar_t) == 4) {
             // Linux/Unix: UTF-32
-            utf8::utf32to8(value.begin(), value.end(), std::back_inserter(utf8_string));
+            // Convert to u32string first to avoid sign-conversion warning
+            // (wchar_t is signed on Linux, but char32_t is unsigned)
+            std::u32string u32_temp(value.begin(), value.end());
+            utf8::utf32to8(u32_temp.begin(), u32_temp.end(), std::back_inserter(utf8_string));
         }
         
         oss << utf8_string;
