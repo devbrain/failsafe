@@ -323,25 +323,25 @@ namespace failsafe::logger {
     }
 
     /**
-     * @brief Log with compile-time level filtering
-     * 
-     * This template function provides compile-time filtering based on LOGGER_MIN_LEVEL.
-     * Messages below the minimum level are completely removed from the binary.
-     * 
+     * @brief Log with specified level
+     *
+     * This template function performs the actual logging.
+     * Compile-time filtering is handled by the LOG_* macros via preprocessor guards.
+     *
      * @tparam Level The log level (must be a compile-time constant)
      * @tparam Args Variadic template arguments for message building
      * @param category Log category string
      * @param file Source file name
      * @param line Source line number
      * @param args Message arguments to concatenate
+     *
+     * @note The LOG_* macros are conditionally defined based on LOGGER_MIN_LEVEL,
+     *       so calls to this function are already filtered at compile time.
      */
     template<int Level, typename... Args>
     inline void log_with_level(const char* category, const char* file,
                                int line, Args&&... args) {
-        // Compile-time check
-        if constexpr (Level >= LOGGER_MIN_LEVEL) {
-            internal::log_impl(Level, category, file, line, std::forward <Args>(args)...);
-        }
+        internal::log_impl(Level, category, file, line, std::forward <Args>(args)...);
     }
 }
 

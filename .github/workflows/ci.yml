@@ -119,3 +119,37 @@ jobs:
 
       - name: Run tests
         run: ctest --test-dir build --build-config Debug --output-on-failure
+
+  sanitizers:
+    runs-on: ubuntu-latest
+    name: Ubuntu - Clang 18 (ASan + UBSan)
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install compiler
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y lsb-release wget software-properties-common gnupg
+          wget https://apt.llvm.org/llvm.sh
+          chmod +x llvm.sh
+          sudo bash ./llvm.sh 18 all
+          echo "CC=clang-18" >> $GITHUB_ENV
+          echo "CXX=clang++-18" >> $GITHUB_ENV
+
+      - name: Configure CMake
+        run: |
+          cmake -B build \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer -g" \
+            -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined" \
+            -DFAILSAFE_BUILD_WITH_TESTS=ON
+
+      - name: Build
+        run: cmake --build build --config Debug
+
+      - name: Run tests
+        env:
+          ASAN_OPTIONS: detect_leaks=1:abort_on_error=1
+          UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
+        run: ctest --test-dir build --build-config Debug --output-on-failure
