@@ -19,6 +19,7 @@
 #include <iostream>
 #include <mutex>
 #include <chrono>
+#include <ctime>
 #include <iomanip>
 #include <thread>
 #include <memory>
@@ -38,6 +39,19 @@
  * @brief Logger backend implementations
  */
 namespace failsafe::logger::backends {
+
+    namespace detail {
+        /**
+         * @brief Thread-safe wrapper for localtime
+         */
+        inline std::tm* safe_localtime(const std::time_t* time, std::tm* result) {
+#ifdef _WIN32
+            return localtime_s(result, time) == 0 ? result : nullptr;
+#else
+            return localtime_r(time, result);
+#endif
+        }
+    } // namespace detail
     /**
      * @brief Thread-safe stderr backend with configurable output features
      *
@@ -112,7 +126,9 @@ namespace failsafe::logger::backends {
                     auto ms = std::chrono::duration_cast <std::chrono::milliseconds>(
                                   now.time_since_epoch()) % 1000;
 
-                    std::cerr << std::put_time(std::localtime(&time_t), "%Y-%m-%d %H:%M:%S");
+                    std::tm tm{};
+                    detail::safe_localtime(&time_t, &tm);
+                    std::cerr << std::put_time(&tm, "%Y-%m-%d %H:%M:%S");
                     std::cerr << '.' << std::setfill('0') << std::setw(3) << ms.count() << " ";
                 }
 

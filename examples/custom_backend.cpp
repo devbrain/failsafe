@@ -15,8 +15,19 @@
 #include <condition_variable>
 #include <iomanip>
 #include <sstream>
+#include <ctime>
 
 using namespace failsafe;
+
+namespace {
+    inline std::tm* safe_localtime(const std::time_t* time, std::tm* result) {
+#ifdef _WIN32
+        return localtime_s(result, time) == 0 ? result : nullptr;
+#else
+        return localtime_r(time, result);
+#endif
+    }
+}
 
 // Example 1: Simple File Backend
 class FileBackend {
@@ -39,8 +50,10 @@ public:
         // Format timestamp
         auto now = std::chrono::system_clock::now();
         auto time_t = std::chrono::system_clock::to_time_t(now);
-        
-        file_ << std::put_time(std::localtime(&time_t), "%Y-%m-%d %H:%M:%S")
+        std::tm tm{};
+        safe_localtime(&time_t, &tm);
+
+        file_ << std::put_time(&tm, "%Y-%m-%d %H:%M:%S")
               << " [" << logger::internal::level_to_string(level) << "]"
               << " [" << category << "]"
               << " " << file << ":" << line
@@ -78,7 +91,9 @@ class AsyncQueueBackend {
                 
                 // Write to file
                 auto time_t = std::chrono::system_clock::to_time_t(entry.timestamp);
-                file_ << std::put_time(std::localtime(&time_t), "%Y-%m-%d %H:%M:%S")
+                std::tm tm{};
+                safe_localtime(&time_t, &tm);
+                file_ << std::put_time(&tm, "%Y-%m-%d %H:%M:%S")
                       << " [" << logger::internal::level_to_string(entry.level) << "]"
                       << " [" << entry.category << "]"
                       << " " << entry.file << ":" << entry.line

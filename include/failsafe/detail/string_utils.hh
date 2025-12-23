@@ -69,6 +69,35 @@ namespace std {
 #endif
 
 namespace failsafe::detail {
+
+    /**
+     * @brief Thread-safe wrapper for gmtime
+     * @param time Pointer to time_t value
+     * @param result Pointer to tm struct to store result
+     * @return Pointer to result on success, nullptr on failure
+     */
+    inline std::tm* safe_gmtime(const std::time_t* time, std::tm* result) {
+#ifdef _WIN32
+        return gmtime_s(result, time) == 0 ? result : nullptr;
+#else
+        return gmtime_r(time, result);
+#endif
+    }
+
+    /**
+     * @brief Thread-safe wrapper for localtime
+     * @param time Pointer to time_t value
+     * @param result Pointer to tm struct to store result
+     * @return Pointer to result on success, nullptr on failure
+     */
+    inline std::tm* safe_localtime(const std::time_t* time, std::tm* result) {
+#ifdef _WIN32
+        return localtime_s(result, time) == 0 ? result : nullptr;
+#else
+        return localtime_r(time, result);
+#endif
+    }
+
     /**
      * @brief Type traits for type-safe formatting (C++17/20 compatible)
      */
@@ -1060,7 +1089,8 @@ namespace failsafe::detail {
                               tp.time_since_epoch()) % 1000;
 
                 // Format as ISO 8601
-                std::tm tm = *std::gmtime(&time_t);
+                std::tm tm{};
+                safe_gmtime(&time_t, &tm);
                 oss << std::put_time(&tm, "%Y-%m-%dT%H:%M:%S");
                 oss << '.' << std::setfill('0') << std::setw(3) << ms.count() << 'Z';
             } else {

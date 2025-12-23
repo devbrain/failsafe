@@ -1,5 +1,6 @@
 # Failsafe
 
+[![CI](https://github.com/devbrain/failsafe/actions/workflows/ci.yml/badge.svg)](https://github.com/devbrain/failsafe/actions/workflows/ci.yml)
 [![C++17](https://img.shields.io/badge/C%2B%2B-17/20-blue.svg)](https://en.wikipedia.org/wiki/C%2B%2B17)
 [![Header-only](https://img.shields.io/badge/header--only-yes-brightgreen.svg)](include/failsafe)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
@@ -8,14 +9,14 @@ Failsafe is a modern C++ header-only library providing robust error handling and
 
 ## Features
 
-- 🚀 **Zero-overhead abstractions** - Features can be completely compiled out
-- 🔒 **Thread-safe logging** with compile-time level filtering
-- 🛡️ **Policy-based enforcement** mechanism inspired by Andrei Alexandrescu
-- 🎯 **Flexible exception system** with debug trap modes
-- 📍 **Portable source location** handling (C++20, builtins, or macros)
-- 🔌 **Multiple logger backends** (stderr, POCO, gRPC/Abseil)
-- 📦 **Header-only** - No linking required
-- 🔧 **C++17/20 compatible** - Works with both standards
+- **Zero-overhead abstractions** - Features can be completely compiled out
+- **Thread-safe logging** with compile-time level filtering
+- **Policy-based enforcement** mechanism inspired by Andrei Alexandrescu
+- **Flexible exception system** with debug trap modes
+- **Portable source location** handling (C++20, builtins, or macros)
+- **Multiple logger backends** (stderr, POCO, gRPC/Abseil)
+- **Header-only** - No linking required
+- **C++17/20 compatible** - Works with both standards
 
 ## Quick Start
 
