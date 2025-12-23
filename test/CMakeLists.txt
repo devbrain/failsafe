@@ -1,15 +1,11 @@
+# Main test executable (tests that don't need isolation)
 add_executable(failsafe_unittest
     main.cc
-        test_string_formatters.cc
-        test_string_utils.cc
-        test_exception.cc
-        test_exception_trap.cc
-        test_enforce.cc
-        test_location_format.cc
-        test_exception_chaining.cc
-        test_enforce_chaining.cc
-        test_container_edge_cases.cc
-        strings_helper.hh
+    test_string_formatters.cc
+    test_string_utils.cc
+    test_location_format.cc
+    test_container_edge_cases.cc
+    strings_helper.hh
 )
 
 # Add portability test as a separate executable
@@ -35,6 +31,37 @@ add_executable(test_logger
     test_logger.cc
 )
 target_link_libraries(test_logger PRIVATE failsafe doctest::doctest)
+
+# Exception-related tests in separate executables to isolate potential issues
+add_executable(test_exception
+    main.cc
+    test_exception.cc
+)
+target_link_libraries(test_exception PRIVATE failsafe doctest::doctest)
+
+add_executable(test_exception_trap
+    main.cc
+    test_exception_trap.cc
+)
+target_link_libraries(test_exception_trap PRIVATE failsafe doctest::doctest)
+
+add_executable(test_exception_chaining
+    main.cc
+    test_exception_chaining.cc
+)
+target_link_libraries(test_exception_chaining PRIVATE failsafe doctest::doctest)
+
+add_executable(test_enforce
+    main.cc
+    test_enforce.cc
+)
+target_link_libraries(test_enforce PRIVATE failsafe doctest::doctest)
+
+add_executable(test_enforce_chaining
+    main.cc
+    test_enforce_chaining.cc
+)
+target_link_libraries(test_enforce_chaining PRIVATE failsafe doctest::doctest)
 
 # Detect clang-cl (Clang with MSVC frontend on Windows)
 set(FAILSAFE_IS_CLANG_CL FALSE)
@@ -92,11 +119,17 @@ elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" OR FAILSAFE_IS_CLANG_CL)
     endif()
 endif()
 
+# Apply warning flags to all test executables
 target_link_libraries(failsafe_unittest PRIVATE failsafe doctest::doctest)
 target_compile_options(failsafe_unittest PRIVATE ${FAILSAFE_WARNING_FLAGS})
 target_compile_options(test_compile_time_filtering PRIVATE ${FAILSAFE_WARNING_FLAGS})
 target_compile_options(test_lazy_logging PRIVATE ${FAILSAFE_WARNING_FLAGS})
 target_compile_options(test_logger PRIVATE ${FAILSAFE_WARNING_FLAGS})
+target_compile_options(test_exception PRIVATE ${FAILSAFE_WARNING_FLAGS})
+target_compile_options(test_exception_trap PRIVATE ${FAILSAFE_WARNING_FLAGS})
+target_compile_options(test_exception_chaining PRIVATE ${FAILSAFE_WARNING_FLAGS})
+target_compile_options(test_enforce PRIVATE ${FAILSAFE_WARNING_FLAGS})
+target_compile_options(test_enforce_chaining PRIVATE ${FAILSAFE_WARNING_FLAGS})
 
 # Register tests with CTest
 include(CTest)
@@ -105,3 +138,8 @@ add_test(NAME test_portability COMMAND test_portability)
 add_test(NAME test_compile_time_filtering COMMAND test_compile_time_filtering)
 add_test(NAME test_lazy_logging COMMAND test_lazy_logging)
 add_test(NAME test_logger COMMAND test_logger)
+add_test(NAME test_exception COMMAND test_exception)
+add_test(NAME test_exception_trap COMMAND test_exception_trap)
+add_test(NAME test_exception_chaining COMMAND test_exception_chaining)
+add_test(NAME test_enforce COMMAND test_enforce)
+add_test(NAME test_enforce_chaining COMMAND test_enforce_chaining)
