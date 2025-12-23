@@ -184,17 +184,20 @@ namespace failsafe::logger {
 
     /**
      * @brief Logger configuration structure
-     * 
+     *
      * Holds the global logger state including backend, minimum level,
      * and enabled status.
+     *
+     * @note min_level is initialized to LOGGER_LEVEL_TRACE (0) to allow all messages by default.
+     *       Use LOGGER_MIN_LEVEL for compile-time filtering in the LOG_* macros.
      */
     struct LoggerConfig {
         /** @brief Current logging backend */
         LoggerBackend backend = internal::default_cerr_backend;
-        
+
         /** @brief Minimum runtime log level (atomic for thread safety) */
-        std::atomic <int> min_level{LOGGER_MIN_LEVEL};
-        
+        std::atomic <int> min_level{LOGGER_LEVEL_TRACE};
+
         /** @brief Whether logging is enabled (atomic for thread safety) */
         std::atomic <bool> enabled{true};
     };
