@@ -996,7 +996,7 @@ namespace failsafe::detail {
 
         // Convert to uppercase
         std::transform(str.begin(), str.end(), str.begin(),
-                       [](unsigned char c) { return std::toupper(c); });
+                       [](unsigned char c) { return static_cast<char>(std::toupper(c)); });
         oss << str;
     }
 
@@ -1012,7 +1012,7 @@ namespace failsafe::detail {
 
         // Convert to lowercase
         std::transform(str.begin(), str.end(), str.begin(),
-                       [](unsigned char c) { return std::tolower(c); });
+                       [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
         oss << str;
     }
 

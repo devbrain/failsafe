@@ -19,7 +19,13 @@ add_executable(failsafe_unittest
 add_executable(test_portability test_portability.cc)
 target_link_libraries(test_portability PRIVATE failsafe)
 
-if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+# Detect clang-cl (Clang with MSVC frontend on Windows)
+set(FAILSAFE_IS_CLANG_CL FALSE)
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
+    set(FAILSAFE_IS_CLANG_CL TRUE)
+endif()
+
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang" AND NOT FAILSAFE_IS_CLANG_CL)
     set(FAILSAFE_WARNING_FLAGS
             -Wall           # All standard warnings
             -Wextra         # Extra warnings
@@ -45,12 +51,28 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
                 -Wuseless-cast  # Warn about useless casts
         )
     endif()
-elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" OR FAILSAFE_IS_CLANG_CL)
     set(FAILSAFE_WARNING_FLAGS
             /W4             # Highest warning level
             /permissive-    # Strict standard conformance
             /Zc:__cplusplus # Report correct __cplusplus value
     )
+    if(FAILSAFE_IS_CLANG_CL)
+        # Suppress noisy clang-cl warnings
+        list(APPEND FAILSAFE_WARNING_FLAGS
+                # Suppress C++ compatibility warnings (we require C++17)
+                /clang:-Wno-c++98-compat
+                /clang:-Wno-c++98-compat-pedantic
+                /clang:-Wno-c++98-c++11-compat-binary-literal
+                /clang:-Wno-pre-c++14-compat
+                /clang:-Wno-pre-c++17-compat
+                # Suppress overly strict warnings
+                /clang:-Wno-unsafe-buffer-usage
+                /clang:-Wno-exit-time-destructors
+                /clang:-Wno-global-constructors
+                /clang:-Wno-missing-prototypes
+        )
+    endif()
 endif()
 
 target_link_libraries(failsafe_unittest PRIVATE failsafe doctest::doctest)

@@ -364,7 +364,7 @@ TEST_SUITE("Logger") {
         std::atomic <int> start_flag{0};
 
         for (int t = 0; t < num_threads; ++t) {
-            threads.emplace_back([t, &start_flag, &backend]() {
+            threads.emplace_back([t, &start_flag]() {
                 // Wait for all threads to be ready
                 start_flag.fetch_add(1);
                 while (start_flag.load() < num_threads) {

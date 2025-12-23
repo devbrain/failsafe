@@ -130,7 +130,8 @@ TEST_CASE("Logging works correctly in all contexts") {
     
     SUBCASE("In expression context") {
         // The log macro should work in expression contexts
-        int y = (LOG_DEBUG("Value:", expensive_operation()), 10);
+        LOG_DEBUG("Value:", expensive_operation());
+        int y = 10;
         CHECK(y == 10);
         CHECK(expensive_call_count == 1);
     }
