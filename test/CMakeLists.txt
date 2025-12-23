@@ -2,12 +2,10 @@ add_executable(failsafe_unittest
     main.cc
         test_string_formatters.cc
         test_string_utils.cc
-        test_logger.cc
         test_exception.cc
         test_exception_trap.cc
         test_enforce.cc
         test_location_format.cc
-        test_lazy_logging.cc
         test_exception_chaining.cc
         test_enforce_chaining.cc
         test_container_edge_cases.cc
@@ -18,14 +16,25 @@ add_executable(failsafe_unittest
 add_executable(test_portability test_portability.cc)
 target_link_libraries(test_portability PRIVATE failsafe)
 
-# Compile-time filtering test needs its own executable because it defines
-# LOGGER_MIN_LEVEL differently, which could cause issues when linked with
-# other TUs on some compilers (notably clang-cl on Windows)
+# Tests that explicitly define LOGGER_MIN_LEVEL need their own executables
+# to avoid cross-TU issues on some compilers (notably clang-cl on Windows)
 add_executable(test_compile_time_filtering
     main.cc
     test_compile_time_filtering.cc
 )
 target_link_libraries(test_compile_time_filtering PRIVATE failsafe doctest::doctest)
+
+add_executable(test_lazy_logging
+    main.cc
+    test_lazy_logging.cc
+)
+target_link_libraries(test_lazy_logging PRIVATE failsafe doctest::doctest)
+
+add_executable(test_logger
+    main.cc
+    test_logger.cc
+)
+target_link_libraries(test_logger PRIVATE failsafe doctest::doctest)
 
 # Detect clang-cl (Clang with MSVC frontend on Windows)
 set(FAILSAFE_IS_CLANG_CL FALSE)
@@ -86,9 +95,13 @@ endif()
 target_link_libraries(failsafe_unittest PRIVATE failsafe doctest::doctest)
 target_compile_options(failsafe_unittest PRIVATE ${FAILSAFE_WARNING_FLAGS})
 target_compile_options(test_compile_time_filtering PRIVATE ${FAILSAFE_WARNING_FLAGS})
+target_compile_options(test_lazy_logging PRIVATE ${FAILSAFE_WARNING_FLAGS})
+target_compile_options(test_logger PRIVATE ${FAILSAFE_WARNING_FLAGS})
 
 # Register tests with CTest
 include(CTest)
 add_test(NAME failsafe_unittest COMMAND failsafe_unittest)
 add_test(NAME test_portability COMMAND test_portability)
 add_test(NAME test_compile_time_filtering COMMAND test_compile_time_filtering)
+add_test(NAME test_lazy_logging COMMAND test_lazy_logging)
+add_test(NAME test_logger COMMAND test_logger)
