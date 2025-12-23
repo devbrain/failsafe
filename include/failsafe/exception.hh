@@ -222,15 +222,20 @@ namespace failsafe::exception {
     inline std::string get_nested_trace(const std::exception& e, unsigned int indent_level = 0) {
         std::string indent(indent_level * 2u, ' ');
         std::string result = indent + "→ " + e.what() + "\n";
-        
-        try {
-            std::rethrow_if_nested(e);
-        } catch (const std::exception& nested) {
-            result += get_nested_trace(nested, indent_level + 1);
-        } catch (...) {
-            result += indent + "  → [unknown nested exception]\n";
+
+        // Use dynamic_cast to check for nested_exception - safer than rethrow_if_nested
+        // on some platforms (notably clang-cl on Windows)
+        const auto* nested_ptr = dynamic_cast<const std::nested_exception*>(&e);
+        if (nested_ptr && nested_ptr->nested_ptr()) {
+            try {
+                nested_ptr->rethrow_nested();
+            } catch (const std::exception& nested) {
+                result += get_nested_trace(nested, indent_level + 1);
+            } catch (...) {
+                result += indent + "  → [unknown nested exception]\n";
+            }
         }
-        
+
         return result;
     }
     
