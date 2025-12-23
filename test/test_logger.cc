@@ -288,8 +288,10 @@ TEST_SUITE("Logger") {
         }
 
         SUBCASE("LOG_CAT_IF") {
-            LOG_CAT_IF(2 > 1, LOGGER_LEVEL_WARN, "math", "2 is greater than 1");
-            LOG_CAT_IF(1 > 2, LOGGER_LEVEL_WARN, "math", "Should not appear");
+            bool true_cond = true;
+            bool false_cond = false;
+            LOG_CAT_IF(true_cond, LOGGER_LEVEL_WARN, "math", "2 is greater than 1");
+            LOG_CAT_IF(false_cond, LOGGER_LEVEL_WARN, "math", "Should not appear");
 
             CHECK(backend.count() == 1);
             CHECK(backend.entries()[0].category == "math");

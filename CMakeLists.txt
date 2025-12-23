@@ -90,6 +90,8 @@ install(TARGETS failsafe
 )
 
 if(FAILSAFE_BUILD_WITH_TESTS)
+    enable_testing()
+
     # Try to find installed doctest first
     find_package(doctest 2.4 QUIET)
     set(FAILSAFE_FETCHED_DOCTEST FALSE)

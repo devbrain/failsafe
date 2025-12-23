@@ -77,3 +77,8 @@ endif()
 
 target_link_libraries(failsafe_unittest PRIVATE failsafe doctest::doctest)
 target_compile_options(failsafe_unittest PRIVATE ${FAILSAFE_WARNING_FLAGS})
+
+# Register tests with CTest
+include(CTest)
+add_test(NAME failsafe_unittest COMMAND failsafe_unittest)
+add_test(NAME test_portability COMMAND test_portability)

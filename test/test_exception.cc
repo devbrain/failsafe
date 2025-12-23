@@ -108,8 +108,10 @@ TEST_SUITE("Exception Macros") {
         }
 
         SUBCASE("THROW_DEFAULT_IF") {
-            CHECK_THROWS_AS(THROW_DEFAULT_IF(2 > 1, "Math still works"), std::logic_error);
-            CHECK_NOTHROW(THROW_DEFAULT_IF(1 > 2, "Should not throw"));
+            bool true_cond = true;
+            bool false_cond = false;
+            CHECK_THROWS_AS(THROW_DEFAULT_IF(true_cond, "Math still works"), std::logic_error);
+            CHECK_NOTHROW(THROW_DEFAULT_IF(false_cond, "Should not throw"));
         }
 
         SUBCASE("THROW_UNLESS with true condition") {
