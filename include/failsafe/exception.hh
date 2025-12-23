@@ -78,6 +78,17 @@
 /** @} */ // end of TrapModes group
 
 /**
+ * @brief Disable exception chaining on clang-cl
+ *
+ * std::throw_with_nested causes crashes on clang-cl (Clang with MSVC ABI).
+ * This is a known issue with how clang-cl handles the multiple inheritance
+ * involved in std::nested_exception.
+ */
+#if defined(__clang__) && defined(_MSC_VER) && !defined(FAILSAFE_FORCE_EXCEPTION_CHAINING)
+#define FAILSAFE_DISABLE_EXCEPTION_CHAINING 1
+#endif
+
+/**
  * @namespace failsafe::exception
  * @brief Exception handling utilities
  */
@@ -175,7 +186,11 @@ namespace failsafe::exception {
                 std::ostringstream oss;
                 failsafe::detail::append_location(oss, file, line);
                 oss << " " << message;
-                
+
+#ifdef FAILSAFE_DISABLE_EXCEPTION_CHAINING
+                // Exception chaining disabled (e.g., on clang-cl)
+                throw Exception(oss.str());
+#else
                 // Check if there's a current exception to chain with
                 if (std::current_exception()) {
                     // Automatically chain with the current exception
@@ -184,13 +199,18 @@ namespace failsafe::exception {
                     // No current exception, throw normally
                     throw Exception(oss.str());
                 }
+#endif
             } else {
                 // For exceptions without string constructor
+#ifdef FAILSAFE_DISABLE_EXCEPTION_CHAINING
+                throw Exception();
+#else
                 if (std::current_exception()) {
                     std::throw_with_nested(Exception());
                 } else {
                     throw Exception();
                 }
+#endif
             }
 #endif
         }

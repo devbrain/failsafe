@@ -3,6 +3,13 @@
 #include <string>
 #include <fstream>
 
+// Skip chaining tests on clang-cl where std::throw_with_nested is broken
+#ifdef FAILSAFE_DISABLE_EXCEPTION_CHAINING
+#define SKIP_CHAINING_TEST DOCTEST_SKIP("Exception chaining disabled on this platform")
+#else
+#define SKIP_CHAINING_TEST
+#endif
+
 // Simulate file operations
 std::string read_file(const std::string& path) {
     if (path == "missing.txt") {
@@ -42,6 +49,7 @@ void initialize_application() {
 }
 
 TEST_CASE("Automatic exception chaining") {
+    SKIP_CHAINING_TEST;
     using namespace failsafe::exception;
     
     SUBCASE("Simple throw behavior") {
@@ -155,6 +163,7 @@ TEST_CASE("Automatic exception chaining") {
 }
 
 TEST_CASE("Exception trace formatting") {
+    SKIP_CHAINING_TEST;
     using namespace failsafe::exception;
     
     SUBCASE("Trace includes file locations") {

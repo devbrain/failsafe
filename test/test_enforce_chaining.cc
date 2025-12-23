@@ -2,6 +2,13 @@
 #include <failsafe/enforce.hh>
 #include <failsafe/exception.hh>
 
+// Skip chaining tests on clang-cl where std::throw_with_nested is broken
+#ifdef FAILSAFE_DISABLE_EXCEPTION_CHAINING
+#define SKIP_CHAINING_TEST DOCTEST_SKIP("Exception chaining disabled on this platform")
+#else
+#define SKIP_CHAINING_TEST
+#endif
+
 // Function that uses enforce
 void* allocate_memory([[maybe_unused]] size_t size) {
     // Simulate allocation failure
@@ -29,6 +36,7 @@ void run_analysis() {
 }
 
 TEST_CASE("Enforce with exception chaining") {
+    SKIP_CHAINING_TEST;
     using namespace failsafe;
     
     SUBCASE("ENFORCE failures chain with THROW") {
@@ -103,6 +111,7 @@ TEST_CASE("Enforce with exception chaining") {
 }
 
 TEST_CASE("Enforce chaining in realistic scenarios") {
+    SKIP_CHAINING_TEST;
     using namespace failsafe;
     
     SUBCASE("File operation with enforce") {
