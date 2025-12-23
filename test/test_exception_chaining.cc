@@ -5,9 +5,9 @@
 
 // Skip chaining tests on clang-cl where std::throw_with_nested is broken
 #ifdef FAILSAFE_DISABLE_EXCEPTION_CHAINING
-#define SKIP_CHAINING_TEST DOCTEST_SKIP("Exception chaining disabled on this platform")
+#define SKIP_CHAINING_TEST do { MESSAGE("Exception chaining disabled on this platform"); return; } while(0)
 #else
-#define SKIP_CHAINING_TEST
+#define SKIP_CHAINING_TEST do {} while(0)
 #endif
 
 // Simulate file operations
