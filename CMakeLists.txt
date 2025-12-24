@@ -171,6 +171,7 @@ endif()
 # Summary
 # =============================================================================
 
-if(NEUTRINO_PROJECT_IS_TOP_LEVEL)
+neutrino_is_top_level(_failsafe_is_top_level)
+if(_failsafe_is_top_level)
     neutrino_print_options(failsafe)
 endif()
