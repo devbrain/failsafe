@@ -1,124 +1,95 @@
 cmake_minimum_required(VERSION 3.20)
+
 project(failsafe
     VERSION 1.0.0
     DESCRIPTION "A header-only C++ error handling library"
-    LANGUAGES C CXX)
+    LANGUAGES CXX
+)
 
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+# =============================================================================
+# Neutrino CMake Integration
+# =============================================================================
 
-# Build options
-option(FAILSAFE_BUILD_WITH_TESTS "Build unit tests" OFF)
-option(FAILSAFE_BUILD_EXAMPLES "Build example programs" OFF)
-option(FAILSAFE_BUILD_DOCUMENTATION "Build documentation with Doxygen" OFF)
+include(FetchContent)
 
-# Define warning flags for our project
-set(FAILSAFE_WARNING_FLAGS)
-
-# Try to find installed libraries first
-find_package(termcolor QUIET)
-find_package(utf8cpp QUIET)
-
-# Track which dependencies were fetched
-set(FAILSAFE_FETCHED_TERMCOLOR FALSE)
-set(FAILSAFE_FETCHED_UTF8CPP FALSE)
-
-# Handle termcolor
-if(termcolor_FOUND)
-    message(STATUS "Found installed termcolor")
-else()
-    message(STATUS "termcolor not found, will fetch from GitHub")
-    add_subdirectory(ext/termcolor)
-    set(FAILSAFE_FETCHED_TERMCOLOR TRUE)
+if(NOT DEFINED NEUTRINO_CMAKE_DIR)
+    FetchContent_Declare(neutrino_cmake
+        GIT_REPOSITORY https://github.com/devbrain/neutrino-cmake.git
+        GIT_TAG master
+        GIT_SHALLOW TRUE
+    )
+    FetchContent_MakeAvailable(neutrino_cmake)
+    set(NEUTRINO_CMAKE_DIR "${neutrino_cmake_SOURCE_DIR}/cmake")
+    list(APPEND CMAKE_MODULE_PATH "${NEUTRINO_CMAKE_DIR}")
 endif()
 
-# Handle utf8cpp
-if(utf8cpp_FOUND)
-    message(STATUS "Found installed utf8cpp")
-else()
-    message(STATUS "utf8cpp not found, will fetch from GitHub")
-    add_subdirectory(ext/utfcpp)
-    set(FAILSAFE_FETCHED_UTF8CPP TRUE)
-endif()
+include(NeutrinoInit)
+
+# =============================================================================
+# Options
+# =============================================================================
+
+neutrino_define_options(failsafe)
+
+option(NEUTRINO_FAILSAFE_BUILD_DOCS
+    "Build documentation with Doxygen"
+    OFF
+)
+
+# =============================================================================
+# Dependencies
+# =============================================================================
+
+include(${NEUTRINO_CMAKE_DIR}/deps/termcolor.cmake)
+include(${NEUTRINO_CMAKE_DIR}/deps/utf8cpp.cmake)
+
+neutrino_fetch_termcolor()
+neutrino_fetch_utf8cpp()
+
+# =============================================================================
+# Library Target
+# =============================================================================
 
 add_library(failsafe INTERFACE)
-target_include_directories(failsafe INTERFACE 
+add_library(neutrino::failsafe ALIAS failsafe)
+
+target_include_directories(failsafe INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:include>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
-# Link to the appropriate targets
-if(termcolor_FOUND)
-    target_link_libraries(failsafe INTERFACE termcolor::termcolor)
-else()
-    target_link_libraries(failsafe INTERFACE termcolor)
-endif()
-
-if(utf8cpp_FOUND)
-    target_link_libraries(failsafe INTERFACE utf8cpp::utf8cpp)
-else()
-    target_link_libraries(failsafe INTERFACE utf8cpp)
-endif()
-
-# Specify required C++ features instead of just the standard
-target_compile_features(failsafe INTERFACE
-    cxx_std_17
-    cxx_constexpr
-    cxx_noexcept
-    cxx_nullptr
-    cxx_auto_type
-    cxx_decltype
-    cxx_static_assert
-    cxx_variadic_templates
-    cxx_rvalue_references
-    cxx_override
-    cxx_final
-    cxx_deleted_functions
-    cxx_defaulted_functions
+target_link_libraries(failsafe INTERFACE
+    termcolor::termcolor
+    utf8cpp::utf8cpp
 )
 
-# Installation rules
-include(GNUInstallDirs)
-install(DIRECTORY include/
-    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-    FILES_MATCHING PATTERN "*.h" PATTERN "*.hh"
-)
+target_compile_features(failsafe INTERFACE cxx_std_17)
 
-install(TARGETS failsafe
-    EXPORT failsafeTargets
-    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-)
+# =============================================================================
+# Tests
+# =============================================================================
 
-if(FAILSAFE_BUILD_WITH_TESTS)
+if(NEUTRINO_FAILSAFE_BUILD_TESTS)
+    include(${NEUTRINO_CMAKE_DIR}/deps/doctest.cmake)
+    neutrino_fetch_doctest()
+
     enable_testing()
-
-    # Try to find installed doctest first
-    find_package(doctest 2.4 QUIET)
-    set(FAILSAFE_FETCHED_DOCTEST FALSE)
-    
-    if(doctest_FOUND)
-        message(STATUS "Found installed doctest: ${doctest_VERSION}")
-    else()
-        message(STATUS "doctest not found, will fetch from GitHub")
-        # Include FetchContent module for downloading test dependencies
-        include(FetchContent)
-        set(FETCHCONTENT_QUIET off)
-        
-        # Only fetch doctest when building tests
-        add_subdirectory(ext/doctest)
-        set(FAILSAFE_FETCHED_DOCTEST TRUE)
-    endif()
-    
     add_subdirectory(test)
 endif()
 
-# Build examples if requested
-if(FAILSAFE_BUILD_EXAMPLES)
+# =============================================================================
+# Examples
+# =============================================================================
+
+if(NEUTRINO_FAILSAFE_BUILD_EXAMPLES)
     add_subdirectory(examples)
 endif()
 
-# Documentation building
-if(FAILSAFE_BUILD_DOCUMENTATION)
+# =============================================================================
+# Documentation
+# =============================================================================
+
+if(NEUTRINO_FAILSAFE_BUILD_DOCS)
     find_package(Doxygen QUIET COMPONENTS dot)
     if(DOXYGEN_FOUND)
         message(STATUS "Doxygen found: ${DOXYGEN_EXECUTABLE}")
@@ -129,37 +100,23 @@ if(FAILSAFE_BUILD_DOCUMENTATION)
             message(STATUS "Graphviz dot not found. Graphs will not be generated.")
             set(DOXYGEN_DOT_PATH "")
         endif()
-        
-        # Set project version for documentation
-        if(NOT PROJECT_VERSION)
-            set(PROJECT_VERSION "1.0")
-        endif()
-        
+
         # Configure Doxyfile from template
         set(DOXYFILE_IN ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in)
         set(DOXYFILE_OUT ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile)
         configure_file(${DOXYFILE_IN} ${DOXYFILE_OUT} @ONLY)
-        
+
         # Create docs directory
         set(DOXYGEN_OUT ${CMAKE_CURRENT_BINARY_DIR}/docs)
         file(MAKE_DIRECTORY ${DOXYGEN_OUT})
-        
+
         # Find all header files for dependencies
         file(GLOB_RECURSE FAILSAFE_HEADERS
             ${CMAKE_CURRENT_SOURCE_DIR}/include/failsafe/*.hh
             ${CMAKE_CURRENT_SOURCE_DIR}/include/failsafe/*.h
         )
-        
-        # Add a custom target to run Doxygen (built with ALL)
-        add_custom_target(documentation ALL
-            COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYFILE_OUT}
-            WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-            COMMENT "Generating API documentation with Doxygen"
-            DEPENDS ${FAILSAFE_HEADERS} ${DOXYFILE_OUT}
-            VERBATIM
-        )
-        
-        # Add a target to just build docs (not part of ALL)
+
+        # Add custom targets for documentation
         add_custom_target(docs
             COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYFILE_OUT}
             WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
@@ -167,98 +124,53 @@ if(FAILSAFE_BUILD_DOCUMENTATION)
             DEPENDS ${FAILSAFE_HEADERS} ${DOXYFILE_OUT}
             VERBATIM
         )
-        
-        # Add a target to view documentation
+
         add_custom_target(docs-view
             COMMAND ${CMAKE_COMMAND} -E echo "Opening documentation in default browser..."
             COMMAND xdg-open ${DOXYGEN_OUT}/html/index.html || open ${DOXYGEN_OUT}/html/index.html || start ${DOXYGEN_OUT}/html/index.html
-            DEPENDS documentation
+            DEPENDS docs
             COMMENT "Opening documentation in browser"
             VERBATIM
         )
-        
-        # Install documentation if requested
-        install(DIRECTORY ${DOXYGEN_OUT}/html
-            DESTINATION share/doc/failsafe
-            OPTIONAL
-        )
-        
+
         message(STATUS "Documentation will be built in: ${DOXYGEN_OUT}")
-        message(STATUS "Use 'make documentation' to build docs as part of all targets")
-        message(STATUS "Use 'make docs' to build only documentation")
+        message(STATUS "Use 'make docs' to build documentation")
         message(STATUS "Use 'make docs-view' to build and open documentation")
     else()
         message(WARNING "Doxygen not found. Documentation will not be built.")
-        message(STATUS "Install Doxygen to enable documentation generation.")
-        message(STATUS "  Ubuntu/Debian: sudo apt-get install doxygen graphviz")
-        message(STATUS "  macOS: brew install doxygen graphviz")
-        message(STATUS "  Windows: download from https://www.doxygen.nl/download.html")
     endif()
 endif()
 
-# Print build configuration summary
-message(STATUS "")
-message(STATUS "Failsafe build configuration:")
-message(STATUS "  C++ Standard: ${CMAKE_CXX_STANDARD}")
-message(STATUS "  Build tests: ${FAILSAFE_BUILD_WITH_TESTS}")
-message(STATUS "  Build examples: ${FAILSAFE_BUILD_EXAMPLES}")
-message(STATUS "  Build documentation: ${FAILSAFE_BUILD_DOCUMENTATION}")
-message(STATUS "")
+# =============================================================================
+# Installation
+# =============================================================================
 
-# Install fetched dependencies if they were not found on the system
-if(FAILSAFE_FETCHED_TERMCOLOR)
-    install(TARGETS termcolor
-        EXPORT failsafeTargets
-        INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+if(NEUTRINO_FAILSAFE_INSTALL)
+    include(NeutrinoInstall)
+
+    neutrino_install_headers(failsafe)
+
+    neutrino_install_library(failsafe
+        NAMESPACE neutrino::
+        COMPATIBILITY SameMajorVersion
+        DEPENDENCIES
+            "find_dependency(termcolor REQUIRED)"
+            "find_dependency(utf8cpp REQUIRED)"
     )
-    install(DIRECTORY ${TERMCOLOR_SOURCE_DIR}/include/
-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-        FILES_MATCHING PATTERN "*.hpp"
-    )
+
+    # Install documentation if built
+    if(NEUTRINO_FAILSAFE_BUILD_DOCS AND DOXYGEN_FOUND)
+        install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/docs/html
+            DESTINATION share/doc/failsafe
+            OPTIONAL
+        )
+    endif()
 endif()
 
-if(FAILSAFE_FETCHED_UTF8CPP)
-    install(TARGETS utf8cpp
-        EXPORT failsafeTargets
-        INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-    )
-    install(FILES ${UTFCPP_SOURCE_DIR}/source/utf8.h
-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/utf8cpp
-    )
-    install(DIRECTORY ${UTFCPP_SOURCE_DIR}/source/utf8
-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/utf8cpp
-    )
+# =============================================================================
+# Summary
+# =============================================================================
+
+if(NEUTRINO_PROJECT_IS_TOP_LEVEL)
+    neutrino_print_options(failsafe)
 endif()
-
-# Note: doctest is only needed for tests, so we don't install it
-
-# CMake package configuration
-include(CMakePackageConfigHelpers)
-
-# Create package config file
-configure_package_config_file(
-    ${CMAKE_CURRENT_SOURCE_DIR}/cmake/failsafeConfig.cmake.in
-    ${CMAKE_CURRENT_BINARY_DIR}/failsafeConfig.cmake
-    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/failsafe
-)
-
-# Create version file
-write_basic_package_version_file(
-    ${CMAKE_CURRENT_BINARY_DIR}/failsafeConfigVersion.cmake
-    VERSION ${PROJECT_VERSION}
-    COMPATIBILITY AnyNewerVersion
-)
-
-# Install CMake files
-install(EXPORT failsafeTargets
-    FILE failsafeTargets.cmake
-    NAMESPACE failsafe::
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/failsafe
-)
-
-install(FILES
-    ${CMAKE_CURRENT_BINARY_DIR}/failsafeConfig.cmake
-    ${CMAKE_CURRENT_BINARY_DIR}/failsafeConfigVersion.cmake
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/failsafe
-)
-

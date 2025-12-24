@@ -42,3 +42,6 @@
 build
 cmake-build-debug
 .idea
+# Log files
+*.lg
+*.log

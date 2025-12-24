@@ -1,6 +1,7 @@
-# Examples CMakeLists.txt
+# =============================================================================
+# Failsafe Examples
+# =============================================================================
 
-# Common settings for all examples
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/examples)
 
 # Define example programs
@@ -15,26 +16,19 @@ set(EXAMPLE_PROGRAMS
 foreach(example ${EXAMPLE_PROGRAMS})
     add_executable(${example}_example ${example}.cpp)
     target_link_libraries(${example}_example PRIVATE failsafe)
-    
-    # Use same warning flags as tests
-    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+
+    # Examples use relaxed warnings - they're demonstration code
+    if(NEUTRINO_COMPILER_IS_MSVC)
+        target_compile_options(${example}_example PRIVATE /W3)
+    else()
         target_compile_options(${example}_example PRIVATE
-            -Wall -Wextra -Wpedantic
-            -Wno-unused-parameter  # Examples might have unused params
-            -Wno-unused-variable   # Examples might have unused vars for demonstration
+            -Wall
+            -Wextra
+            -Wno-unused-parameter
+            -Wno-unused-variable
         )
-    elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-        target_compile_options(${example}_example PRIVATE /W4)
     endif()
 endforeach()
-
-# Special requirements for certain examples
-if(TARGET string_formatting_example)
-    # String formatting example uses filesystem
-    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-        target_link_libraries(string_formatting_example PRIVATE stdc++fs)
-    endif()
-endif()
 
 # Create list of example targets
 set(EXAMPLE_TARGETS)
@@ -48,7 +42,4 @@ add_custom_target(examples
     COMMENT "Building all examples"
 )
 
-# Print message about examples
 message(STATUS "Examples will be built in: ${CMAKE_BINARY_DIR}/examples")
-message(STATUS "Use 'make examples' to build all examples")
-message(STATUS "Or build individual examples: make basic_usage_example")
