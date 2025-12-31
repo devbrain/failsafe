@@ -63,6 +63,10 @@ target_link_libraries(failsafe INTERFACE
     utf8cpp::utf8cpp
 )
 
+target_compile_definitions(failsafe INTERFACE
+    $<$<CXX_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>
+)
+
 target_compile_features(failsafe INTERFACE cxx_std_17)
 
 # =============================================================================
