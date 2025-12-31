@@ -360,8 +360,8 @@ TEST_SUITE("Logger") {
         LoggerTestFixture fixture;
         auto& backend = fixture.backend();
 
-        constexpr int num_threads = 4;
-        constexpr int messages_per_thread = 100;
+        static constexpr int num_threads = 4;
+        static constexpr int messages_per_thread = 100;
         std::vector <std::thread> threads;
         std::atomic <int> start_flag{0};
 
