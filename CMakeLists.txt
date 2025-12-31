@@ -150,6 +150,25 @@ if(NEUTRINO_FAILSAFE_INSTALL)
 
     neutrino_install_headers(failsafe)
 
+    set(_failsafe_export_deps "")
+    if(TARGET termcolor::termcolor)
+        get_target_property(_termcolor_target termcolor::termcolor ALIASED_TARGET)
+        if(NOT _termcolor_target)
+            set(_termcolor_target termcolor::termcolor)
+        endif()
+        list(APPEND _failsafe_export_deps "${_termcolor_target}")
+    endif()
+    if(TARGET utf8cpp::utf8cpp)
+        get_target_property(_utf8cpp_target utf8cpp::utf8cpp ALIASED_TARGET)
+        if(NOT _utf8cpp_target)
+            set(_utf8cpp_target utf8cpp::utf8cpp)
+        endif()
+        list(APPEND _failsafe_export_deps "${_utf8cpp_target}")
+    endif()
+    if(_failsafe_export_deps)
+        install(TARGETS ${_failsafe_export_deps} EXPORT failsafeTargets)
+    endif()
+
     neutrino_install_library(failsafe
         NAMESPACE neutrino::
         COMPATIBILITY SameMajorVersion
