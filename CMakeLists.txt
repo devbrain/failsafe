@@ -36,6 +36,11 @@ option(NEUTRINO_FAILSAFE_BUILD_DOCS
     OFF
 )
 
+option(NEUTRINO_FAILSAFE_USE_CPPTRACE
+    "Enrich exceptions with cpptrace stack traces"
+    OFF
+)
+
 # =============================================================================
 # Dependencies
 # =============================================================================
@@ -45,6 +50,11 @@ include(${NEUTRINO_CMAKE_DIR}/deps/utf8cpp.cmake)
 
 neutrino_fetch_termcolor()
 neutrino_fetch_utf8cpp()
+
+if(NEUTRINO_FAILSAFE_USE_CPPTRACE)
+    include(${NEUTRINO_CMAKE_DIR}/deps/cpptrace.cmake)
+    neutrino_fetch_cpptrace()
+endif()
 
 # =============================================================================
 # Library Target
@@ -62,6 +72,11 @@ target_link_libraries(failsafe INTERFACE
     termcolor::termcolor
     utf8cpp::utf8cpp
 )
+
+if(NEUTRINO_FAILSAFE_USE_CPPTRACE)
+    target_link_libraries(failsafe INTERFACE cpptrace::cpptrace)
+    target_compile_definitions(failsafe INTERFACE FAILSAFE_USE_CPPTRACE=1)
+endif()
 
 target_compile_definitions(failsafe INTERFACE
     $<$<CXX_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>
@@ -169,16 +184,29 @@ if(NEUTRINO_FAILSAFE_INSTALL)
         endif()
         list(APPEND _failsafe_export_deps "${_utf8cpp_target}")
     endif()
+    if(NEUTRINO_FAILSAFE_USE_CPPTRACE AND TARGET cpptrace::cpptrace)
+        get_target_property(_cpptrace_target cpptrace::cpptrace ALIASED_TARGET)
+        if(NOT _cpptrace_target)
+            set(_cpptrace_target cpptrace::cpptrace)
+        endif()
+        list(APPEND _failsafe_export_deps "${_cpptrace_target}")
+    endif()
     if(_failsafe_export_deps)
         install(TARGETS ${_failsafe_export_deps} EXPORT failsafeTargets)
+    endif()
+
+    set(_failsafe_install_deps
+        "find_dependency(termcolor REQUIRED)"
+        "find_dependency(utf8cpp REQUIRED)"
+    )
+    if(NEUTRINO_FAILSAFE_USE_CPPTRACE)
+        list(APPEND _failsafe_install_deps "find_dependency(cpptrace REQUIRED)")
     endif()
 
     neutrino_install_library(failsafe
         NAMESPACE neutrino::
         COMPATIBILITY SameMajorVersion
-        DEPENDENCIES
-            "find_dependency(termcolor REQUIRED)"
-            "find_dependency(utf8cpp REQUIRED)"
+        DEPENDENCIES ${_failsafe_install_deps}
     )
 
     # Install documentation if built

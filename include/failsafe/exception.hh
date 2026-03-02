@@ -41,6 +41,10 @@
 #include <failsafe/detail/psnip_debug_trap.h>
 #include <failsafe/detail/location_format.hh>
 
+#ifdef FAILSAFE_USE_CPPTRACE
+#include <cpptrace/cpptrace.hpp>
+#endif
+
 /**
  * @brief Default exception type for THROW_DEFAULT macro
  * 
@@ -165,6 +169,11 @@ namespace failsafe::exception {
         inline void throw_exception(const char* file, int line, Args&&... args) {
             // Build the message first
             std::string message = failsafe::detail::build_message(std::forward <Args>(args)...);
+
+#ifdef FAILSAFE_USE_CPPTRACE
+            // Enrich message with stack trace
+            message += "\nStack trace:\n" + cpptrace::generate_trace().to_string();
+#endif
 
             // Handle debug trap modes
 #if FAILSAFE_TRAP_MODE == 1
