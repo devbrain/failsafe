@@ -4,6 +4,7 @@
  */
 #pragma once
 
+#include <cstddef>
 #include <sstream>
 #include <string>
 #include <type_traits>
