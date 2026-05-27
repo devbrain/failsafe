@@ -11,11 +11,6 @@
 #include <SDL3/SDL_log.h>
 #include <failsafe/logger.hh>
 #include <string>
-#include <sstream>
-
-namespace failsafe {
-namespace logger {
-namespace backend {
 
 /**
  * @brief SDL3 logging backend for failsafe
@@ -24,6 +19,8 @@ namespace backend {
  * outputs messages through SDL's logging system. This allows for
  * consistent logging when using SDL3 applications.
  */
+namespace failsafe::logger::backends {
+
 class sdl_backend {
 public:
     /**
@@ -35,45 +32,30 @@ public:
 
     /**
      * @brief Log a message through SDL
-     * @param level Failsafe log level
-     * @param msg The log message
+     * @param level Failsafe log level (LOGGER_LEVEL_* constant)
+     * @param category Logger category
+     * @param file Source file name
+     * @param line Source line number
+     * @param message The formatted log message
      */
-    void log(severity level, const std::string& msg) {
-        SDL_LogPriority priority = map_severity_to_sdl(level);
-        SDL_LogMessage(category_, priority, "%s", msg.c_str());
-    }
+    void operator()(int level,
+                    const char* category,
+                    const char* file,
+                    int line,
+                    const std::string& message) const {
+        const SDL_LogPriority priority = map_level_to_sdl(level);
 
-    /**
-     * @brief Log a formatted message through SDL
-     * @param level Failsafe log level
-     * @param location Source code location
-     * @param format Format string
-     * @param args Format arguments
-     */
-    template<typename... Args>
-    void log(severity level,
-             const source_location& location,
-             const std::string& format,
-             Args&&... args) {
-        std::ostringstream oss;
-
-        // Add location information if available
-        if (!location.file_name().empty()) {
-            oss << "[" << location.file_name()
-                << ":" << location.line()
-                << "] ";
-        }
-
-        // Format the message
-        if constexpr (sizeof...(args) > 0) {
-            // Simple format implementation
-            // In production, use fmt::format or similar
-            oss << format_string(format, std::forward<Args>(args)...);
+        if (file && *file) {
+            SDL_LogMessage(category_, priority, "[%s] %s:%d - %s",
+                           category ? category : "",
+                           file,
+                           line,
+                           message.c_str());
         } else {
-            oss << format;
+            SDL_LogMessage(category_, priority, "[%s] %s",
+                           category ? category : "",
+                           message.c_str());
         }
-
-        log(level, oss.str());
     }
 
     /**
@@ -97,52 +79,37 @@ private:
 
     /**
      * @brief Map failsafe severity to SDL log priority
-     * @param level Failsafe severity level
+     * @param level Failsafe log level (LOGGER_LEVEL_* constant)
      * @return Corresponding SDL log priority
      */
-    static SDL_LogPriority map_severity_to_sdl(severity level) {
+    static SDL_LogPriority map_level_to_sdl(int level) {
         switch (level) {
-        case severity::trace:
+        case LOGGER_LEVEL_TRACE:
             return SDL_LOG_PRIORITY_VERBOSE;
-        case severity::debug:
+        case LOGGER_LEVEL_DEBUG:
             return SDL_LOG_PRIORITY_DEBUG;
-        case severity::info:
+        case LOGGER_LEVEL_INFO:
             return SDL_LOG_PRIORITY_INFO;
-        case severity::warn:
+        case LOGGER_LEVEL_WARN:
             return SDL_LOG_PRIORITY_WARN;
-        case severity::error:
+        case LOGGER_LEVEL_ERROR:
             return SDL_LOG_PRIORITY_ERROR;
-        case severity::fatal:
+        case LOGGER_LEVEL_FATAL:
             return SDL_LOG_PRIORITY_CRITICAL;
         default:
             return SDL_LOG_PRIORITY_INFO;
         }
-    }
-
-    /**
-     * @brief Simple format string implementation
-     * @param format Format string
-     * @param args Arguments
-     * @return Formatted string
-     */
-    template<typename... Args>
-    std::string format_string(const std::string& format, Args&&... args) {
-        std::ostringstream oss;
-        oss << format;
-        // Simplified - in production use proper formatting
-        ((oss << " " << args), ...);
-        return oss.str();
     }
 };
 
 /**
  * @brief Factory function to create SDL backend
  * @param category SDL log category
- * @return Shared pointer to SDL backend
+ * @return LoggerBackend containing the configured SDL backend
  */
-inline std::shared_ptr<sdl_backend> make_sdl_backend(
+inline LoggerBackend make_sdl_backend(
     int category = SDL_LOG_CATEGORY_APPLICATION) {
-    return std::make_shared<sdl_backend>(category);
+    return sdl_backend(category);
 }
 
 /**
@@ -154,29 +121,12 @@ inline std::shared_ptr<sdl_backend> make_sdl_backend(
  *
  * Example usage:
  * @code
- * failsafe::logger::backend::use_sdl_backend();
+ * failsafe::logger::backends::use_sdl_backend();
  * LOG_INFO("Application started");
  * @endcode
  */
 inline void use_sdl_backend(int category = SDL_LOG_CATEGORY_APPLICATION) {
-    auto backend = make_sdl_backend(category);
-
-    // Register the backend with failsafe logger
-    // The exact API depends on failsafe version
-    // This is a conceptual example:
-
-    // Option 1: If failsafe supports custom backends
-    // logger::set_backend(backend);
-
-    // Option 2: If failsafe uses a global function
-    // set_log_backend([backend](severity level, const std::string& msg) {
-    //     backend->log(level, msg);
-    // });
-
-    // Option 3: Through a registry pattern
-    // logger::registry::instance().set_backend(backend);
+    set_backend(make_sdl_backend(category));
 }
 
-} // namespace backend
-} // namespace logger
-} // namespace failsafe
+} // namespace failsafe::logger::backends
