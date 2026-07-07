@@ -28,14 +28,18 @@
 #include <unordered_map>
 
 // Include utf8cpp for wstring conversion
-// Suppress sign conversion warnings from utf8.h template instantiations
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable: 4365) // signed/unsigned mismatch
-#elif defined(__clang__)
+// Suppress warnings from utf8.h template instantiations.
+// NOTE: __clang__ must be checked before _MSC_VER because clang-cl defines both;
+// clang-cl understands "#pragma clang diagnostic", not MSVC warning numbers.
+#if defined(__clang__)
 #pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunknown-warning-option" // tolerate flags added in newer clang
 #pragma clang diagnostic ignored "-Wsign-conversion"
 #pragma clang diagnostic ignored "-Wswitch-default"
+#pragma clang diagnostic ignored "-Wcharacter-conversion" // char32_t/char16_t comparisons in utf8 core.h
+#elif defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable: 4365) // signed/unsigned mismatch
 #elif defined(__GNUC__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wsign-conversion"
@@ -44,10 +48,10 @@
 
 #include <utf8.h>
 
-#ifdef _MSC_VER
-#pragma warning(pop)
-#elif defined(__clang__)
+#if defined(__clang__)
 #pragma clang diagnostic pop
+#elif defined(_MSC_VER)
+#pragma warning(pop)
 #elif defined(__GNUC__)
 #pragma GCC diagnostic pop
 #endif
