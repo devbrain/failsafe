@@ -424,6 +424,73 @@ namespace failsafe::enforce {
     };
 
     /**
+     * @brief Non-owning enforcer for expected-like LVALUE arguments.
+     *
+     * When ENFORCE receives a named expected (an lvalue), the value must NOT be
+     * moved out of the caller's object: doing so leaves the caller with
+     * has_value()==true but a moved-from (e.g. null) value, silently breaking
+     * everything downstream. This variant references the value in place — no
+     * move, no copy — and only validates / raises. Rvalue expecteds (temporaries,
+     * or explicit std::move) still use @ref expected_enforcer, which owns the
+     * moved-out value so `auto v = ENFORCE(fn())` keeps working.
+     *
+     * @tparam V The value type (unwrapped from expected)
+     * @tparam E The error type
+     * @tparam Raiser The raiser policy
+     */
+    template<typename V, typename E, typename Raiser = raisers::default_raiser>
+    class expected_ref_enforcer {
+    public:
+        expected_ref_enforcer(V* value, const char* expr,
+                              const char* file, int line)
+            : value_(value)
+            , expr_(expr)
+            , file_(file)
+            , line_(line)
+            , failed_(false) {
+        }
+
+        expected_ref_enforcer(E error, const char* expr,
+                              const char* file, int line)
+            : expr_(expr)
+            , file_(file)
+            , line_(line)
+            , failed_(true)
+            , error_(std::move(error)) {
+        }
+
+        ~expected_ref_enforcer() noexcept(false) {
+            if (failed_ && !handled_) {
+                handled_ = true;
+                Raiser::raise(file_, line_, "Enforcement failed: ", expr_,
+                              " - error: ", error_);
+            }
+        }
+
+        template<typename... Args>
+        expected_ref_enforcer& operator()(Args&&... args) {
+            if (failed_) {
+                handled_ = true;
+                Raiser::raise(file_, line_, std::forward<Args>(args)...);
+            }
+            return *this;
+        }
+
+        operator V() const { return *value_; }
+        V& get() { return *value_; }
+        const V& get() const { return *value_; }
+
+    private:
+        V* value_ = nullptr;
+        const char* expr_;
+        const char* file_;
+        int line_;
+        bool failed_;
+        bool handled_ = false;
+        E error_{};
+    };
+
+    /**
      * @internal
      * @defgroup EnforcerFactories Factory Functions
      * @{
@@ -445,12 +512,23 @@ namespace failsafe::enforce {
 #endif
             using value_type = std::decay_t<decltype(*value)>;
             using error_type = std::decay_t<decltype(value.error())>;
-            if (value.has_value()) {
-                return expected_enforcer<value_type, error_type>(
-                    std::move(*value), true, expr, file, line);
+            if constexpr (std::is_lvalue_reference_v<T>) {
+                // lvalue: reference the value in place, never move it out of the caller
+                if (value.has_value()) {
+                    return expected_ref_enforcer<value_type, error_type>(
+                        &*value, expr, file, line);
+                } else {
+                    return expected_ref_enforcer<value_type, error_type>(
+                        value.error(), expr, file, line);
+                }
             } else {
-                return expected_enforcer<value_type, error_type>(
-                    std::move(value.error()), expr, file, line);
+                if (value.has_value()) {
+                    return expected_enforcer<value_type, error_type>(
+                        std::move(*value), true, expr, file, line);
+                } else {
+                    return expected_enforcer<value_type, error_type>(
+                        std::move(value.error()), expr, file, line);
+                }
             }
         } else {
             bool passed = predicates::truth::check(value);
@@ -472,14 +550,27 @@ namespace failsafe::enforce {
 #endif
             using value_type = std::decay_t<decltype(*value)>;
             using error_type = std::decay_t<decltype(value.error())>;
-            if (value.has_value()) {
-                return expected_enforcer<value_type, error_type,
-                                         raisers::exception_raiser<Exception>>(
-                    std::move(*value), true, expr, file, line);
+            if constexpr (std::is_lvalue_reference_v<T>) {
+                // lvalue: reference the value in place, never move it out of the caller
+                if (value.has_value()) {
+                    return expected_ref_enforcer<value_type, error_type,
+                                                 raisers::exception_raiser<Exception>>(
+                        &*value, expr, file, line);
+                } else {
+                    return expected_ref_enforcer<value_type, error_type,
+                                                 raisers::exception_raiser<Exception>>(
+                        value.error(), expr, file, line);
+                }
             } else {
-                return expected_enforcer<value_type, error_type,
-                                         raisers::exception_raiser<Exception>>(
-                    std::move(value.error()), expr, file, line);
+                if (value.has_value()) {
+                    return expected_enforcer<value_type, error_type,
+                                             raisers::exception_raiser<Exception>>(
+                        std::move(*value), true, expr, file, line);
+                } else {
+                    return expected_enforcer<value_type, error_type,
+                                             raisers::exception_raiser<Exception>>(
+                        std::move(value.error()), expr, file, line);
+                }
             }
         } else {
             bool passed = predicates::truth::check(value);
@@ -502,12 +593,23 @@ namespace failsafe::enforce {
 #endif
             using value_type = std::decay_t<decltype(*value)>;
             using error_type = std::decay_t<decltype(value.error())>;
-            if (value.has_value()) {
-                return expected_enforcer<value_type, error_type, raisers::trap_raiser>(
-                    std::move(*value), true, expr, file, line);
+            if constexpr (std::is_lvalue_reference_v<T>) {
+                // lvalue: reference the value in place, never move it out of the caller
+                if (value.has_value()) {
+                    return expected_ref_enforcer<value_type, error_type, raisers::trap_raiser>(
+                        &*value, expr, file, line);
+                } else {
+                    return expected_ref_enforcer<value_type, error_type, raisers::trap_raiser>(
+                        value.error(), expr, file, line);
+                }
             } else {
-                return expected_enforcer<value_type, error_type, raisers::trap_raiser>(
-                    std::move(value.error()), expr, file, line);
+                if (value.has_value()) {
+                    return expected_enforcer<value_type, error_type, raisers::trap_raiser>(
+                        std::move(*value), true, expr, file, line);
+                } else {
+                    return expected_enforcer<value_type, error_type, raisers::trap_raiser>(
+                        std::move(value.error()), expr, file, line);
+                }
             }
         } else {
             bool passed = predicates::truth::check(value);
