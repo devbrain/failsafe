@@ -1306,9 +1306,46 @@ namespace failsafe::detail {
         append_to_stream(oss, static_cast<const std::wstring_view&>(value));
     }
 
-    // build_message() lives in <failsafe/message.hh> (namespace failsafe), built on the
-    // append_to_stream overloads above. It is re-exported there as failsafe::detail::build_message
-    // for backward compatibility, so existing failsafe::detail::build_message call sites keep working.
+} // namespace failsafe::detail
+
+namespace failsafe {
+
+    /**
+     * @brief Build a message string from variadic arguments (space-joined).
+     *
+     * The canonical, public message builder behind ENFORCE / THROW_* / LOG_*, also
+     * surfaced via <failsafe/message.hh>. Concatenates all arguments into one string
+     * separated by spaces, using failsafe::detail::append_to_stream for type-specific
+     * formatting (numbers are stringified automatically).
+     *
+     * @tparam Args Variadic template parameter pack.
+     * @param args Arguments to concatenate.
+     * @return The built message string.
+     */
+    template<typename... Args>
+    std::string build_message(Args&&... args) {
+        if constexpr (sizeof...(args) == 0) {
+            return "";
+        } else {
+            std::ostringstream oss;
+            ((detail::append_to_stream(oss, std::forward<Args>(args)), oss << " "), ...);
+            std::string output = oss.str();
+            // Remove trailing space
+            if (!output.empty() && output.back() == ' ') {
+                output.pop_back();
+            }
+            return output;
+        }
+    }
+
+} // namespace failsafe
+
+namespace failsafe::detail {
+
+    // Back-compat alias: existing call sites (the ENFORCE/THROW_*/LOG_* macros, and
+    // other libraries that include this header directly) spell it
+    // failsafe::detail::build_message. Keep that name pointing at the canonical symbol.
+    using failsafe::build_message;
 
     /**
      * @page custom_formatters Creating Custom Formatters
