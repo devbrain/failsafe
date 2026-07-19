@@ -38,6 +38,7 @@
 #include <iostream>
 
 #include <failsafe/detail/string_utils.hh>
+#include <failsafe/message.hh>
 #include <failsafe/detail/psnip_debug_trap.h>
 #include <failsafe/detail/location_format.hh>
 

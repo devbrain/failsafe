@@ -1306,31 +1306,9 @@ namespace failsafe::detail {
         append_to_stream(oss, static_cast<const std::wstring_view&>(value));
     }
 
-    /**
-     * @brief Build a message string from variadic arguments
-     *
-     * Concatenates all arguments into a single string, separated by spaces.
-     * Uses append_to_stream for special formatting of various types.
-     *
-     * @tparam Args Variadic template parameter pack
-     * @param args Arguments to concatenate
-     * @return The built message string
-     */
-    template<typename... Args>
-    std::string build_message(Args&&... args) {
-        if constexpr (sizeof...(args) == 0) {
-            return "";
-        } else {
-            std::ostringstream oss;
-            ((append_to_stream(oss, std::forward <Args>(args)), oss << " "), ...);
-            std::string output = oss.str();
-            // Remove trailing space
-            if (!output.empty() && output.back() == ' ') {
-                output.pop_back();
-            }
-            return output;
-        }
-    }
+    // build_message() lives in <failsafe/message.hh> (namespace failsafe), built on the
+    // append_to_stream overloads above. It is re-exported there as failsafe::detail::build_message
+    // for backward compatibility, so existing failsafe::detail::build_message call sites keep working.
 
     /**
      * @page custom_formatters Creating Custom Formatters

@@ -43,6 +43,7 @@
 
 #include <failsafe/exception.hh>
 #include <failsafe/detail/string_utils.hh>
+#include <failsafe/message.hh>
 #include <failsafe/detail/location_format.hh>
 
 /**

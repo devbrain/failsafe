@@ -27,6 +27,9 @@
 // String utilities (also included by logger)
 #include <failsafe/detail/string_utils.hh>
 
+// Public message builder (failsafe::build_message)
+#include <failsafe/message.hh>
+
 // Logger backends
 #include <failsafe/logger/backend/cerr_backend.hh>
 
