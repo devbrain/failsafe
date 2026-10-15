@@ -15,6 +15,7 @@ Failsafe is a modern C++ header-only library providing robust error handling and
 - **Flexible exception system** with debug trap modes
 - **Portable source location** handling (C++20, builtins, or macros)
 - **Multiple logger backends** (stderr, POCO, gRPC/Abseil)
+- **Unified expected type** - Seamless std::expected (C++23) with tl::expected fallback
 - **Header-only** - No linking required
 - **C++17/20 compatible** - Works with both standards
 

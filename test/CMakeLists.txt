@@ -72,3 +72,7 @@ failsafe_add_test(test_enforce
 failsafe_add_test(test_enforce_chaining
     SOURCES main.cc test_enforce_chaining.cc
 )
+
+failsafe_add_test(test_expected
+    SOURCES main.cc test_expected.cc
+)

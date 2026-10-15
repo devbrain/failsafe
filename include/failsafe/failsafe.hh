@@ -20,6 +20,7 @@
 #pragma once
 
 // Core components
+#include <failsafe/expected.hh>
 #include <failsafe/logger.hh>
 #include <failsafe/enforce.hh>
 #include <failsafe/exception.hh>

@@ -47,9 +47,11 @@ option(NEUTRINO_FAILSAFE_USE_CPPTRACE
 
 include(${NEUTRINO_CMAKE_DIR}/deps/termcolor.cmake)
 include(${NEUTRINO_CMAKE_DIR}/deps/utf8cpp.cmake)
+include(${NEUTRINO_CMAKE_DIR}/deps/expected.cmake)
 
 neutrino_fetch_termcolor()
 neutrino_fetch_utf8cpp()
+neutrino_fetch_expected()
 
 if(NEUTRINO_FAILSAFE_USE_CPPTRACE)
     include(${NEUTRINO_CMAKE_DIR}/deps/cpptrace.cmake)
@@ -71,6 +73,7 @@ target_include_directories(failsafe INTERFACE
 target_link_libraries(failsafe INTERFACE
     termcolor::termcolor
     utf8cpp::utf8cpp
+    tl::expected
 )
 
 if(NEUTRINO_FAILSAFE_USE_CPPTRACE)
