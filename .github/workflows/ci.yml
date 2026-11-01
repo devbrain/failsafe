@@ -20,11 +20,11 @@ jobs:
             compiler: gcc
             version: 13
 
-          # Linux Clang
-          - os: ubuntu-latest
+          # Ubuntu 24.04 provides both Clang versions; newer images may drop them.
+          - os: ubuntu-24.04
             compiler: clang
             version: 17
-          - os: ubuntu-latest
+          - os: ubuntu-24.04
             compiler: clang
             version: 18
 
@@ -54,15 +54,12 @@ jobs:
           echo "CC=gcc-${{ matrix.version }}" >> $GITHUB_ENV
           echo "CXX=g++-${{ matrix.version }}" >> $GITHUB_ENV
 
-      - name: Install compiler (Linux Clang)
+      - name: Select compiler (Linux Clang)
         if: runner.os == 'Linux' && matrix.compiler == 'clang'
         run: |
           LLVM_VERSION=${{ matrix.version }}
-          sudo apt-get update
-          sudo apt-get install -y lsb-release wget software-properties-common gnupg
-          wget https://apt.llvm.org/llvm.sh
-          chmod +x llvm.sh
-          sudo bash ./llvm.sh "${LLVM_VERSION}" all
+          clang-${LLVM_VERSION} --version
+          clang++-${LLVM_VERSION} --version
           echo "CC=clang-${LLVM_VERSION}" >> $GITHUB_ENV
           echo "CXX=clang++-${LLVM_VERSION}" >> $GITHUB_ENV
 
@@ -125,19 +122,16 @@ jobs:
         run: ctest --test-dir build --build-config Debug --output-on-failure
 
   sanitizers:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     name: Ubuntu - Clang 18 (ASan + UBSan)
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install compiler
+      - name: Select compiler
         run: |
-          sudo apt-get update
-          sudo apt-get install -y lsb-release wget software-properties-common gnupg
-          wget https://apt.llvm.org/llvm.sh
-          chmod +x llvm.sh
-          sudo bash ./llvm.sh 18 all
+          clang-18 --version
+          clang++-18 --version
           echo "CC=clang-18" >> $GITHUB_ENV
           echo "CXX=clang++-18" >> $GITHUB_ENV
 

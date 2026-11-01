@@ -45,7 +45,15 @@ static_assert(type_name_v<type_name_tests::widget>.find("type_name_tests::widget
 static_assert(type_name_v<type_name_tests::state>.find("type_name_tests::state") != std::string_view::npos);
 static_assert(type_name_v<type_name_tests::wrapper<int[3]>>.find("[3]") != std::string_view::npos);
 static_assert(type_name_v<std::vector<int>>.find("vector") != std::string_view::npos);
-static_assert(type_name_v<failsafe::type_name<failsafe::type_name<int>>>.back() == '>');
+// MSVC adds struct keywords and spaces between nested closing brackets. Use the
+// same whitespace-insensitive comparison as for pointers and arrays, while still
+// checking that both nested types are present and fully closed.
+static_assert(type_name_tests::matches(
+                  type_name_v<failsafe::type_name<failsafe::type_name<int>>>,
+                  "failsafe::type_name<failsafe::type_name<int>>") ||
+              type_name_tests::matches(
+                  type_name_v<failsafe::type_name<failsafe::type_name<int>>>,
+                  "structfailsafe::type_name<structfailsafe::type_name<int>>"));
 static_assert(type_name_v<int(double)>.find("double") != std::string_view::npos);
 static_assert(type_name_v<int(double)>.back() == ')');
 static_assert(failsafe::type_hash_v<int> == 340908721U); // BSW compatibility.
