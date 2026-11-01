@@ -26,6 +26,7 @@
 #include <map>
 #include <unordered_set>
 #include <unordered_map>
+#include <failsafe/type_name.hh>
 
 #if defined(FAILSAFE_USE_MAGIC_ENUM) && FAILSAFE_USE_MAGIC_ENUM
 #include <magic_enum/magic_enum.hpp>
@@ -1040,8 +1041,8 @@ namespace failsafe::detail {
         if constexpr (std::is_same_v <DecayT, bool>) {
             oss << (value ? "true" : "false");
         }
-#if defined(FAILSAFE_USE_MAGIC_ENUM) && FAILSAFE_USE_MAGIC_ENUM
         else if constexpr (std::is_enum_v<DecayT>) {
+#if defined(FAILSAFE_USE_MAGIC_ENUM) && FAILSAFE_USE_MAGIC_ENUM
             // enum_name requires at least one value in the reflection range.
             if constexpr (magic_enum::enum_count<DecayT>() > 0) {
                 const auto name = magic_enum::enum_name(value);
@@ -1052,8 +1053,16 @@ namespace failsafe::detail {
             }
             // Promote character-sized underlying types so they print as numbers.
             oss << +static_cast<std::underlying_type_t<DecayT>>(value);
-        }
+#else
+            auto name = type_name_v<DecayT>;
+            // MSVC includes the elaborated type specifier in enum names.
+            if (name.substr(0, 5) == "enum ") {
+                name.remove_prefix(5);
+            }
+            oss << '(' << name << ':'
+                << +static_cast<std::underlying_type_t<DecayT>>(value) << ')';
 #endif
+        }
         // Handle nullptr (but not arrays/string literals)
         else if constexpr (std::is_pointer_v <DecayT> && !std::is_array_v <std::remove_reference_t <T>>) {
             if (value == nullptr) {

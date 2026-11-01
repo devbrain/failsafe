@@ -309,9 +309,21 @@ neutrino_fetch_failsafe()
 target_link_libraries(myapp PRIVATE neutrino::failsafe)
 ```
 
-The option defaults to **OFF**: no magic_enum dependency is fetched or included,
-and existing enum stream insertion is unchanged. When enabled, the CMake target
-propagates the dependency and `FAILSAFE_USE_MAGIC_ENUM=1` to consumers.
+The option defaults to **OFF**: no magic_enum dependency is fetched or included.
+In this mode, enums print as `(type_name:number)` using Failsafe's compile-time
+type names:
+
+```cpp
+enum class draw_style { normal, italic };
+auto style = failsafe::build_message(draw_style::normal); // "(draw_style:0)"
+```
+
+Namespace qualification is preserved, for example `(graphics::draw_style:0)`.
+MSVC's leading `enum ` keyword is omitted. Character-sized underlying types print
+as numbers, and negative and unknown values use the same format.
+
+When enabled, the CMake target propagates the dependency and
+`FAILSAFE_USE_MAGIC_ENUM=1` to consumers:
 
 ```cpp
 #include <failsafe/message.hh>
@@ -325,9 +337,10 @@ ENFORCE(false, "Unexpected state:", State::failed);
 ```
 
 Both scoped and unscoped enums are supported, including enums inside containers,
-optionals, variants, and tuples. With the option enabled, enum names take
-precedence over an enum's `operator<<`. Values without a reflected name print as
-their underlying integer, including character-sized underlying types.
+optionals, variants, and tuples. Failsafe's enum formatting takes precedence over
+an enum's `operator<<` in both modes. With magic_enum enabled, values without a
+reflected name print as their underlying integer, including character-sized
+underlying types.
 
 magic_enum normally reflects values from **-128 to 127**. For other values,
 configure `magic_enum::customize::enum_range<YourEnum>` before formatting that

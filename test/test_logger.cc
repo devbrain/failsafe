@@ -20,6 +20,8 @@ using namespace failsafe;
 using namespace failsafe::detail;
 using namespace std::chrono_literals;
 
+enum class logger_test_state { ready, failed };
+
 // Custom test backend that captures log messages
 class TestBackend {
     public:
@@ -179,14 +181,15 @@ TEST_SUITE("Logger") {
             CHECK(backend.entries()[0].message == "Vector:  [1, 2, 3]");
         }
 
-#if defined(FAILSAFE_USE_MAGIC_ENUM) && FAILSAFE_USE_MAGIC_ENUM
         SUBCASE("Enum formatting") {
-            enum class state { ready, failed };
-            LOG_INFO("State:", state::failed, static_cast<state>(99));
+            LOG_INFO("State:", logger_test_state::failed, static_cast<logger_test_state>(99));
             REQUIRE(backend.count() == 1);
+#if defined(FAILSAFE_USE_MAGIC_ENUM) && FAILSAFE_USE_MAGIC_ENUM
             CHECK(backend.entries()[0].message == "State: failed 99");
-        }
+#else
+            CHECK(backend.entries()[0].message == "State: (logger_test_state:1) (logger_test_state:99)");
 #endif
+        }
 
         SUBCASE("Nullptr handling") {
             int* ptr = nullptr;
