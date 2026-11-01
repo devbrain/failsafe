@@ -8,6 +8,7 @@
 #include <doctest/doctest.h>
 #include <failsafe/logger.hh>
 #include <failsafe/detail/string_utils.hh>
+#include <failsafe/type_name.hh>
 #include <sstream>
 #include <thread>
 #include <vector>
@@ -159,6 +160,12 @@ TEST_SUITE("Logger") {
             CHECK(backend.entries()[0].message == "Value:  42 , Name:  test , Flag:  true");
         }
 
+        SUBCASE("Compile-time type names") {
+            LOG_INFO("Types:", failsafe::type_name_v<int>, failsafe::type_name<bool>{});
+            REQUIRE(backend.count() == 1);
+            CHECK(backend.entries()[0].message == "Types: int bool");
+        }
+
         SUBCASE("Formatting with hex/oct/bin") {
             LOG_INFO("Hex: ", hex(255), ", Oct: ", oct(64), ", Bin: ", bin(15));
             CHECK(backend.count() == 1);
@@ -171,6 +178,15 @@ TEST_SUITE("Logger") {
             CHECK(backend.count() == 1);
             CHECK(backend.entries()[0].message == "Vector:  [1, 2, 3]");
         }
+
+#if defined(FAILSAFE_USE_MAGIC_ENUM) && FAILSAFE_USE_MAGIC_ENUM
+        SUBCASE("Enum formatting") {
+            enum class state { ready, failed };
+            LOG_INFO("State:", state::failed, static_cast<state>(99));
+            REQUIRE(backend.count() == 1);
+            CHECK(backend.entries()[0].message == "State: failed 99");
+        }
+#endif
 
         SUBCASE("Nullptr handling") {
             int* ptr = nullptr;

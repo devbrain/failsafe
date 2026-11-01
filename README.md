@@ -14,6 +14,7 @@ Failsafe is a modern C++ header-only library providing robust error handling and
 - **Policy-based enforcement** mechanism inspired by Andrei Alexandrescu
 - **Flexible exception system** with debug trap modes
 - **Portable source location** handling (C++20, builtins, or macros)
+- **Compile-time type names** for diagnostics, without RTTI
 - **Multiple logger backends** (stderr, POCO, gRPC/Abseil)
 - **Unified expected type** - Seamless std::expected (C++23) with tl::expected fallback
 - **Header-only** - No linking required
@@ -249,7 +250,93 @@ std::vector<int> data = {1, 2, 3, 4, 5};
 auto limited = build_message("Data:", container(data, 3));  // "[1, 2, 3, ...]"
 ```
 
+### Compile-time Type Names
+
+`<failsafe/type_name.hh>` provides the type-name facility used in BSW, adapted from
+[Adam Badura's type_name library](https://github.com/adambadura/type_name).
+It works independently of magic_enum and requires no additional dependency.
+
+```cpp
+#include <failsafe/type_name.hh>
+#include <failsafe/logger.hh>
+#include <failsafe/enforce.hh>
+
+static_assert(failsafe::type_name_v<int> == "int");
+static_assert(failsafe::type_name<int>::value == "int");
+
+template<typename T>
+void process(const T& value) {
+    LOG_DEBUG("Processing type:", failsafe::type_name_v<T>);
+    ENFORCE(is_valid(value), "Invalid value of type:", failsafe::type_name_v<T>);
+}
+
+// The type-name object is also streamable.
+LOG_INFO("Type:", failsafe::type_name<int>{}); // "Type: int"
+```
+
+Names are `constexpr std::string_view` values backed by static storage. They
+preserve `const`, `volatile`, references, pointers, and array extents; no object or
+RTTI is needed. Use `type_name_v<decltype(value)>` to describe a variable's
+declared type, or `type_name_v<decltype((value))>` to include its reference category.
+The view is not necessarily null-terminated; stream it or respect its length.
+
+GCC, Clang (including clang-cl), and MSVC supply the type spellings, so whitespace,
+aliases, and standard-library names can differ between toolchains. These are
+static type names, not the dynamic type of a polymorphic object.
+
+`failsafe::type_hash_v<T>` also preserves BSW's compile-time CRC32 hash of the name.
+Hashes can collide and change with compiler spelling: use them for diagnostics,
+not persistent identifiers or guaranteed type identity. The names and hashes are
+also available through `<failsafe/failsafe.hh>`.
+
 ## Configuration
+
+### Optional Enum Names
+
+Enable [magic_enum](https://github.com/Neargye/magic_enum) to print enum names in
+`build_message`, `ENFORCE`, exception messages, and logs:
+
+```bash
+cmake -S . -B build -DNEUTRINO_FAILSAFE_USE_MAGIC_ENUM=ON
+```
+
+In a parent CMake project, set the option before fetching or adding Failsafe:
+
+```cmake
+set(NEUTRINO_FAILSAFE_USE_MAGIC_ENUM ON CACHE BOOL "")
+include(${NEUTRINO_CMAKE_DIR}/deps/failsafe.cmake)
+neutrino_fetch_failsafe()
+target_link_libraries(myapp PRIVATE neutrino::failsafe)
+```
+
+The option defaults to **OFF**: no magic_enum dependency is fetched or included,
+and existing enum stream insertion is unchanged. When enabled, the CMake target
+propagates the dependency and `FAILSAFE_USE_MAGIC_ENUM=1` to consumers.
+
+```cpp
+#include <failsafe/message.hh>
+#include <failsafe/enforce.hh>
+
+enum class State { idle, running, failed };
+
+auto message = failsafe::build_message("State:", State::running); // "State: running"
+auto unknown = failsafe::build_message(static_cast<State>(99));  // "99"
+ENFORCE(false, "Unexpected state:", State::failed);
+```
+
+Both scoped and unscoped enums are supported, including enums inside containers,
+optionals, variants, and tuples. With the option enabled, enum names take
+precedence over an enum's `operator<<`. Values without a reflected name print as
+their underlying integer, including character-sized underlying types.
+
+magic_enum normally reflects values from **-128 to 127**. For other values,
+configure `magic_enum::customize::enum_range<YourEnum>` before formatting that
+enum; see the upstream [range and alias limitations](https://github.com/Neargye/magic_enum/blob/v0.9.8/doc/limitations.md).
+Unnamed bitmask combinations also use the numeric fallback.
+
+Without CMake, provide magic_enum's include directory and define
+`FAILSAFE_USE_MAGIC_ENUM=1` before including Failsafe. Keep this setting and any
+magic_enum customizations consistent across translation units.
 
 ### Compile-time Options
 

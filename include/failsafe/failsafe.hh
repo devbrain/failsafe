@@ -31,6 +31,9 @@
 // Public message builder (failsafe::build_message)
 #include <failsafe/message.hh>
 
+// Compile-time type names for diagnostics
+#include <failsafe/type_name.hh>
+
 // Logger backends
 #include <failsafe/logger/backend/cerr_backend.hh>
 

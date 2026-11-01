@@ -27,6 +27,10 @@
 #include <unordered_set>
 #include <unordered_map>
 
+#if defined(FAILSAFE_USE_MAGIC_ENUM) && FAILSAFE_USE_MAGIC_ENUM
+#include <magic_enum/magic_enum.hpp>
+#endif
+
 // Include utf8cpp for wstring conversion
 // Suppress warnings from utf8.h template instantiations.
 // NOTE: __clang__ must be checked before _MSC_VER because clang-cl defines both;
@@ -1036,6 +1040,20 @@ namespace failsafe::detail {
         if constexpr (std::is_same_v <DecayT, bool>) {
             oss << (value ? "true" : "false");
         }
+#if defined(FAILSAFE_USE_MAGIC_ENUM) && FAILSAFE_USE_MAGIC_ENUM
+        else if constexpr (std::is_enum_v<DecayT>) {
+            // enum_name requires at least one value in the reflection range.
+            if constexpr (magic_enum::enum_count<DecayT>() > 0) {
+                const auto name = magic_enum::enum_name(value);
+                if (!name.empty()) {
+                    oss << name;
+                    return;
+                }
+            }
+            // Promote character-sized underlying types so they print as numbers.
+            oss << +static_cast<std::underlying_type_t<DecayT>>(value);
+        }
+#endif
         // Handle nullptr (but not arrays/string literals)
         else if constexpr (std::is_pointer_v <DecayT> && !std::is_array_v <std::remove_reference_t <T>>) {
             if (value == nullptr) {

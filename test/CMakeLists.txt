@@ -76,3 +76,11 @@ failsafe_add_test(test_enforce_chaining
 failsafe_add_test(test_expected
     SOURCES main.cc test_expected.cc
 )
+
+failsafe_add_test(test_enum_formatting
+    SOURCES main.cc test_enum_formatting.cc
+)
+
+failsafe_add_test(test_type_name
+    SOURCES main.cc test_type_name.cc
+)

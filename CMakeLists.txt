@@ -41,6 +41,11 @@ option(NEUTRINO_FAILSAFE_USE_CPPTRACE
     OFF
 )
 
+option(NEUTRINO_FAILSAFE_USE_MAGIC_ENUM
+    "Format enum values by name using magic_enum"
+    OFF
+)
+
 # =============================================================================
 # Dependencies
 # =============================================================================
@@ -56,6 +61,11 @@ neutrino_fetch_expected()
 if(NEUTRINO_FAILSAFE_USE_CPPTRACE)
     include(${NEUTRINO_CMAKE_DIR}/deps/cpptrace.cmake)
     neutrino_fetch_cpptrace()
+endif()
+
+if(NEUTRINO_FAILSAFE_USE_MAGIC_ENUM)
+    include(${NEUTRINO_CMAKE_DIR}/deps/magic_enum.cmake)
+    neutrino_fetch_magic_enum()
 endif()
 
 # =============================================================================
@@ -79,6 +89,11 @@ target_link_libraries(failsafe INTERFACE
 if(NEUTRINO_FAILSAFE_USE_CPPTRACE)
     target_link_libraries(failsafe INTERFACE cpptrace::cpptrace)
     target_compile_definitions(failsafe INTERFACE FAILSAFE_USE_CPPTRACE=1)
+endif()
+
+if(NEUTRINO_FAILSAFE_USE_MAGIC_ENUM)
+    target_link_libraries(failsafe INTERFACE magic_enum::magic_enum)
+    target_compile_definitions(failsafe INTERFACE FAILSAFE_USE_MAGIC_ENUM=1)
 endif()
 
 target_compile_definitions(failsafe INTERFACE
@@ -204,6 +219,9 @@ if(NEUTRINO_FAILSAFE_INSTALL)
     )
     if(NEUTRINO_FAILSAFE_USE_CPPTRACE)
         list(APPEND _failsafe_install_deps "find_dependency(cpptrace REQUIRED)")
+    endif()
+    if(NEUTRINO_FAILSAFE_USE_MAGIC_ENUM)
+        list(APPEND _failsafe_install_deps "find_dependency(magic_enum CONFIG REQUIRED)")
     endif()
 
     neutrino_install_library(failsafe
