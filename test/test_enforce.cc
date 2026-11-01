@@ -19,11 +19,11 @@ TEST_SUITE("Enforce Mechanism") {
         }
         
         SUBCASE("Can chain custom message") {
-            CHECK_THROWS_AS(ENFORCE(false)("Custom error message"), 
+            CHECK_THROWS_AS(ENFORCE(false, "Custom error message"),
                           std::runtime_error);
             
             try {
-                ENFORCE(false)("Error: ", 42, " is the answer");
+                ENFORCE(false, "Error: ", 42, " is the answer");
                 FAIL("Should have thrown");
             } catch (const std::exception& e) {
                 std::string msg(e.what());
@@ -61,7 +61,7 @@ TEST_SUITE("Enforce Mechanism") {
         
         SUBCASE("Null pointer fails") {
             int* ptr = nullptr;
-            CHECK_THROWS_AS(ENFORCE(ptr)("Null pointer detected"), 
+            CHECK_THROWS_AS(ENFORCE(ptr, "Null pointer detected"),
                           std::runtime_error);
         }
         
@@ -80,7 +80,7 @@ TEST_SUITE("Enforce Mechanism") {
         SUBCASE("ENFORCE_EQ") {
             int x = 5;
             CHECK_NOTHROW(ENFORCE_EQ(x, 5));
-            CHECK_THROWS(ENFORCE_EQ(x, 6)("Values don't match"));
+            CHECK_THROWS(ENFORCE_EQ(x, 6, "Values don't match"));
             
             try {
                 ENFORCE_EQ(x, 6);
@@ -100,7 +100,7 @@ TEST_SUITE("Enforce Mechanism") {
             int x = 5;
             CHECK_NOTHROW(ENFORCE_LT(x, 10));
             CHECK_THROWS(ENFORCE_LT(x, 5));
-            CHECK_THROWS(ENFORCE_LT(x, 3)("x must be less than 3"));
+            CHECK_THROWS(ENFORCE_LT(x, 3, "x must be less than 3"));
         }
         
         SUBCASE("ENFORCE_GT") {
@@ -149,11 +149,11 @@ TEST_SUITE("Enforce Mechanism") {
     TEST_CASE("Custom exception types") {
         SUBCASE("ENFORCE_THROW with specific exception") {
             CHECK_THROWS_AS(
-                ENFORCE_THROW(false, std::logic_error)("Logic error"),
+                ENFORCE_THROW(false, std::logic_error, "Logic error"),
                 std::logic_error);
             
             CHECK_THROWS_AS(
-                ENFORCE_THROW(false, std::invalid_argument)("Invalid arg"),
+                ENFORCE_THROW(false, std::invalid_argument, "Invalid arg"),
                 std::invalid_argument);
         }
     }
@@ -162,7 +162,7 @@ TEST_SUITE("Enforce Mechanism") {
         SUBCASE("Compound conditions") {
             int x = 5, y = 10;
             CHECK_NOTHROW(ENFORCE(x < y && y > 0));
-            CHECK_THROWS(ENFORCE(x > y || y < 0)("Invalid state"));
+            CHECK_THROWS(ENFORCE(x > y || y < 0, "Invalid state"));
         }
         
         SUBCASE("Function calls in enforce") {
@@ -179,7 +179,7 @@ TEST_SUITE("Enforce Mechanism") {
             CHECK(y == 42);
             
             std::string s = "hello";
-            bool not_empty = ENFORCE(!s.empty())("String is empty");
+            bool not_empty = ENFORCE(!s.empty(), "String is empty");
             CHECK(not_empty == true);
         }
         
@@ -228,7 +228,7 @@ TEST_SUITE("Enforce Mechanism") {
         SUBCASE("With formatters") {
             try {
                 int value = 255;
-                ENFORCE(value < 100)("Value ", hex(value), " exceeds limit");
+                ENFORCE(value < 100, "Value ", hex(value), " exceeds limit");
                 FAIL("Should have thrown");
             } catch (const std::exception& e) {
                 std::string msg(e.what());
@@ -239,7 +239,7 @@ TEST_SUITE("Enforce Mechanism") {
         SUBCASE("With containers") {
             std::vector<int> vec = {1, 2, 3};
             try {
-                ENFORCE(vec.empty())("Vector is not empty: ", container(vec));
+                ENFORCE(vec.empty(), "Vector is not empty: ", container(vec));
                 FAIL("Should have thrown");
             } catch (const std::exception& e) {
                 std::string msg(e.what());

@@ -18,7 +18,7 @@ void* allocate_memory([[maybe_unused]] size_t size) {
 // Function that catches and re-throws
 void process_data() {
     try {
-        auto buffer = ENFORCE(allocate_memory(1024))("Memory allocation failed");
+        auto buffer = ENFORCE(allocate_memory(1024), "Memory allocation failed");
         // Use buffer...
     } catch (...) {
         // THROW should automatically chain with the enforcement error
@@ -55,8 +55,8 @@ TEST_CASE("Enforce with exception chaining") {
     SUBCASE("Multiple ENFORCE in catch blocks") {
         auto validate_input = [](int value) {
             try {
-                ENFORCE_GT(value, 0)("Value must be positive");
-                ENFORCE_LT(value, 100)("Value must be less than 100");
+                ENFORCE_GT(value, 0, "Value must be positive");
+                ENFORCE_LT(value, 100, "Value must be less than 100");
             } catch (...) {
                 THROW(std::invalid_argument, "Input validation failed for value:", value);
             }
@@ -74,7 +74,7 @@ TEST_CASE("Enforce with exception chaining") {
     SUBCASE("Chaining with multiple enforces") {
         auto process_even_number = [](int value) {
             try {
-                ENFORCE(value % 2 == 0)("Value must be even:", value);
+                ENFORCE(value % 2 == 0, "Value must be even:", value);
             } catch (...) {
                 THROW(std::logic_error, "Even number processing failed");
             }
@@ -93,7 +93,7 @@ TEST_CASE("Enforce with exception chaining") {
         auto conditional_check = [](bool condition, int value) {
             try {
                 if (condition) {
-                    ENFORCE_GT(value, 10)("Value must be greater than 10 when condition is true");
+                    ENFORCE_GT(value, 10, "Value must be greater than 10 when condition is true");
                 }
             } catch (...) {
                 THROW(std::runtime_error, "Conditional check failed");
@@ -121,8 +121,8 @@ TEST_CASE("Enforce chaining in realistic scenarios") {
         
         auto load_configuration = [&open_config_file]() {
             try {
-                auto file = ENFORCE(open_config_file("/etc/app.conf"))
-                    ("Failed to open configuration file");
+                auto file = ENFORCE(open_config_file("/etc/app.conf"),
+                    "Failed to open configuration file");
                 // Would read file here...
                 return std::string("config");
             } catch (...) {
@@ -166,12 +166,12 @@ TEST_CASE("Enforce chaining in realistic scenarios") {
             
             try {
                 // Multiple enforcements that might fail
-                ENFORCE_IN_RANGE(port, 1, 65535)("Invalid port number");
-                ENFORCE(!host.empty())("Host cannot be empty");
+                ENFORCE_IN_RANGE(port, 1, 65535, "Invalid port number");
+                ENFORCE(!host.empty(), "Host cannot be empty");
                 
                 // Simulate connection failure
                 conn.socket_fd = -1;
-                ENFORCE_NE(conn.socket_fd, -1)("Failed to create socket");
+                ENFORCE_NE(conn.socket_fd, -1, "Failed to create socket");
                 
                 return conn;
             } catch (...) {

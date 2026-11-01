@@ -48,7 +48,7 @@ void enforcement_example() {
     try {
         // Basic enforcement - throws on null
         FILE* file = fopen("test.txt", "r");
-        auto safe_file = ENFORCE(file)("Failed to open test.txt");
+        auto safe_file = ENFORCE(file, "Failed to open test.txt");
         std::cout << "File opened successfully\n";
         fclose(safe_file);
     } catch (const std::exception& e) {
@@ -58,16 +58,16 @@ void enforcement_example() {
     // Enforcement with comparisons
     try {
         int port = 70000;
-        ENFORCE_IN_RANGE(port, 1, 65535)("Invalid port number");
+        ENFORCE_IN_RANGE(port, 1, 65535, "Invalid port number");
     } catch (const std::exception& e) {
         std::cout << "Caught: " << e.what() << "\n";
     }
     
     // Multiple enforcements
     auto validate_password = [](const std::string& password) {
-        ENFORCE(!password.empty())("Password cannot be empty");
-        ENFORCE_GE(password.length(), 8)("Password must be at least 8 characters");
-        ENFORCE_LE(password.length(), 128)("Password too long");
+        ENFORCE(!password.empty(), "Password cannot be empty");
+        ENFORCE_GE(password.length(), 8, "Password must be at least 8 characters");
+        ENFORCE_LE(password.length(), 128, "Password too long");
         return password;
     };
     

@@ -32,8 +32,8 @@ int main() {
     LOG_ERROR_IF(error_occurred, "Network", "Connection failed:", error_code);
     
     // Enforcement
-    auto ptr = ENFORCE(malloc(size))("Memory allocation failed");
-    auto file = ENFORCE(fopen(path, "r"))("Cannot open file:", path);
+    auto ptr = ENFORCE(malloc(size), "Memory allocation failed");
+    auto file = ENFORCE(fopen(path, "r"), "Cannot open file:", path);
     
     // Exceptions
     THROW_IF(ptr == nullptr, std::runtime_error, "Null pointer detected");
@@ -141,15 +141,28 @@ Policy-based enforcement that returns the validated value:
 auto ptr = ENFORCE(get_pointer());  // Throws on null
 
 // With custom message
-auto result = ENFORCE(api_call())("API call failed with code:", error_code);
+auto result = ENFORCE(api_call(), "API call failed with code:", error_code);
 
 // Comparison enforcement
-auto index = ENFORCE_IN_RANGE(idx, 0, size-1)("Index out of bounds");
-auto positive = ENFORCE_GT(value, 0)("Value must be positive");
+auto index = ENFORCE_IN_RANGE(idx, 0, size-1, "Index out of bounds");
+auto positive = ENFORCE_GT(value, 0, "Value must be positive");
 
 // Custom exception type
 auto data = ENFORCE_THROW(load_data(), std::invalid_argument);
 ```
+
+All `ENFORCE_*` macros accept optional message arguments after their required
+operands, including `ENFORCE_THROW(expr, ExceptionType, message...)` and
+`DEBUG_ENFORCE(expr, message...)`. Calls without a message keep their default
+diagnostics. The checked operation completes before message arguments are
+evaluated; message arguments are still evaluated when the check succeeds.
+`DEBUG_ENFORCE` evaluates neither the check nor its message in release builds.
+
+The result remains an enforcer with `.get()` and implicit value conversion.
+The legacy `ENFORCE(expr)(message...)` spelling remains supported for existing
+consumers. The portable C++17 macro dispatcher supports up to 64 arguments per
+invocation, including the checked operands; parenthesize operands containing
+unprotected commas, such as template arguments.
 
 ### Exception
 
@@ -210,7 +223,7 @@ This works seamlessly with ENFORCE as well:
 
 ```cpp
 try {
-    auto ptr = ENFORCE(allocate_memory())("Allocation failed");
+    auto ptr = ENFORCE(allocate_memory(), "Allocation failed");
 } catch (...) {
     // ENFORCE errors are automatically chained too!
     THROW(std::runtime_error, "Resource acquisition failed");

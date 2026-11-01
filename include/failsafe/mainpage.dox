@@ -57,11 +57,11 @@
  * auto ptr = ENFORCE(malloc(size));  // Throws on null
  * 
  * // With custom message
- * auto file = ENFORCE(fopen(path, "r"))("Failed to open:", path);
+ * auto file = ENFORCE(fopen(path, "r"), "Failed to open:", path);
  * 
  * // Comparison enforcement
  * auto index = ENFORCE_IN_RANGE(idx, 0, array_size - 1);
- * auto positive = ENFORCE_GT(value, 0)("Value must be positive");
+ * auto positive = ENFORCE_GT(value, 0, "Value must be positive");
  * @endcode
  * 
  * @subsection exception_component Exception
@@ -147,10 +147,10 @@
  * 
  * void process_file(const char* filename) {
  *     // Enforce non-null filename
- *     filename = ENFORCE(filename)("Filename cannot be null");
+ *     filename = ENFORCE(filename, "Filename cannot be null");
  *     
  *     // Open file with enforcement
- *     auto file = ENFORCE(fopen(filename, "r"))("Failed to open file:", filename);
+ *     auto file = ENFORCE(fopen(filename, "r"), "Failed to open file:", filename);
  *     
  *     // Log the operation
  *     LOG_INFO("FileProcessor", "Processing file:", filename);
@@ -268,7 +268,7 @@
  * 2. **Choose enforcement over manual checks**:
  *    @code
  *    // Good
- *    auto ptr = ENFORCE(get_resource())("Resource allocation failed");
+ *    auto ptr = ENFORCE(get_resource(), "Resource allocation failed");
  *    
  *    // Less ideal
  *    auto ptr = get_resource();

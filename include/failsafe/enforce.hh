@@ -701,6 +701,58 @@ namespace failsafe::detail {
     }
 } // namespace failsafe::detail
 
+// Select the plain or message form without optional-comma extensions. The
+// public macros take only ... so calls without a message are valid in C++17.
+// Each dispatch supports up to 64 arguments, including the checked operands.
+// Keeping the message as a call on the enforcer preserves C++17 sequencing:
+// the checked operation completes before diagnostic arguments are evaluated.
+#define FAILSAFE_DETAIL_ENFORCE_SELECT(\
+    _1, _2, _3, _4, _5, _6, _7, _8, \
+    _9, _10, _11, _12, _13, _14, _15, _16, \
+    _17, _18, _19, _20, _21, _22, _23, _24, \
+    _25, _26, _27, _28, _29, _30, _31, _32, \
+    _33, _34, _35, _36, _37, _38, _39, _40, \
+    _41, _42, _43, _44, _45, _46, _47, _48, \
+    _49, _50, _51, _52, _53, _54, _55, _56, \
+    _57, _58, _59, _60, _61, _62, _63, _64, \
+    selected, ...) selected
+
+#define FAILSAFE_DETAIL_ENFORCE_DISPATCH_1(plain, message, ...) \
+    FAILSAFE_DETAIL_ENFORCE_SELECT(__VA_ARGS__, \
+        message, message, message, message, message, message, message, message, \
+        message, message, message, message, message, message, message, message, \
+        message, message, message, message, message, message, message, message, \
+        message, message, message, message, message, message, message, message, \
+        message, message, message, message, message, message, message, message, \
+        message, message, message, message, message, message, message, message, \
+        message, message, message, message, message, message, message, message, \
+        message, message, message, message, message, message, message, plain, \
+        unused)(__VA_ARGS__)
+
+#define FAILSAFE_DETAIL_ENFORCE_DISPATCH_2(plain, message, ...) \
+    FAILSAFE_DETAIL_ENFORCE_SELECT(__VA_ARGS__, \
+        message, message, message, message, message, message, message, message, \
+        message, message, message, message, message, message, message, message, \
+        message, message, message, message, message, message, message, message, \
+        message, message, message, message, message, message, message, message, \
+        message, message, message, message, message, message, message, message, \
+        message, message, message, message, message, message, message, message, \
+        message, message, message, message, message, message, message, message, \
+        message, message, message, message, message, message, plain, plain, \
+        unused)(__VA_ARGS__)
+
+#define FAILSAFE_DETAIL_ENFORCE_DISPATCH_3(plain, message, ...) \
+    FAILSAFE_DETAIL_ENFORCE_SELECT(__VA_ARGS__, \
+        message, message, message, message, message, message, message, message, \
+        message, message, message, message, message, message, message, message, \
+        message, message, message, message, message, message, message, message, \
+        message, message, message, message, message, message, message, message, \
+        message, message, message, message, message, message, message, message, \
+        message, message, message, message, message, message, message, message, \
+        message, message, message, message, message, message, message, message, \
+        message, message, message, message, message, plain, plain, plain, \
+        unused)(__VA_ARGS__)
+
 /**
  * @defgroup EnforceMacros Enforcement Macros
  * @{
@@ -718,11 +770,15 @@ namespace failsafe::detail {
  * @example
  * @code
  * auto ptr = ENFORCE(malloc(size));  // Throws on null
- * auto file = ENFORCE(fopen(path, "r"))("Failed to open:", path);
+ * auto file = ENFORCE(fopen(path, "r"), "Failed to open:", path);
  * @endcode
  */
-#define ENFORCE(expr) \
+#define ENFORCE(...) \
+    FAILSAFE_DETAIL_ENFORCE_DISPATCH_1(FAILSAFE_DETAIL_ENFORCE_PLAIN, FAILSAFE_DETAIL_ENFORCE_MESSAGE, __VA_ARGS__)
+#define FAILSAFE_DETAIL_ENFORCE_PLAIN(expr) \
     ::failsafe::enforce::make_enforcer((expr), #expr, __FILE__, __LINE__)
+#define FAILSAFE_DETAIL_ENFORCE_MESSAGE(expr, ...) \
+    FAILSAFE_DETAIL_ENFORCE_PLAIN(expr)(__VA_ARGS__)
 
 /**
  * @brief Enforce with specific exception type
@@ -730,16 +786,24 @@ namespace failsafe::detail {
  * @param expr Expression to enforce
  * @param ExceptionType Exception type to throw on failure
  */
-#define ENFORCE_THROW(expr, ExceptionType) \
+#define ENFORCE_THROW(...) \
+    FAILSAFE_DETAIL_ENFORCE_DISPATCH_2(FAILSAFE_DETAIL_ENFORCE_THROW_PLAIN, FAILSAFE_DETAIL_ENFORCE_THROW_MESSAGE, __VA_ARGS__)
+#define FAILSAFE_DETAIL_ENFORCE_THROW_PLAIN(expr, ExceptionType) \
     ::failsafe::enforce::make_enforcer_throw<ExceptionType>((expr), #expr, __FILE__, __LINE__)
+#define FAILSAFE_DETAIL_ENFORCE_THROW_MESSAGE(expr, ExceptionType, ...) \
+    FAILSAFE_DETAIL_ENFORCE_THROW_PLAIN(expr, ExceptionType)(__VA_ARGS__)
 
 /**
  * @brief Enforce that always traps to debugger
  * 
  * @param expr Expression to enforce
  */
-#define ENFORCE_TRAP(expr) \
+#define ENFORCE_TRAP(...) \
+    FAILSAFE_DETAIL_ENFORCE_DISPATCH_1(FAILSAFE_DETAIL_ENFORCE_TRAP_PLAIN, FAILSAFE_DETAIL_ENFORCE_TRAP_MESSAGE, __VA_ARGS__)
+#define FAILSAFE_DETAIL_ENFORCE_TRAP_PLAIN(expr) \
     ::failsafe::enforce::make_enforcer_trap((expr), #expr, __FILE__, __LINE__)
+#define FAILSAFE_DETAIL_ENFORCE_TRAP_MESSAGE(expr, ...) \
+    FAILSAFE_DETAIL_ENFORCE_TRAP_PLAIN(expr)(__VA_ARGS__)
 
 /** @} */ // end of EnforceMacros group
 
@@ -749,33 +813,61 @@ namespace failsafe::detail {
  */
 
 /** @brief Enforce equality */
-#define ENFORCE_EQ(value, expected) \
+#define ENFORCE_EQ(...) \
+    FAILSAFE_DETAIL_ENFORCE_DISPATCH_2(FAILSAFE_DETAIL_ENFORCE_EQ_PLAIN, FAILSAFE_DETAIL_ENFORCE_EQ_MESSAGE, __VA_ARGS__)
+#define FAILSAFE_DETAIL_ENFORCE_EQ_PLAIN(value, expected) \
     ::failsafe::enforce::enforce_eq((value), (expected), #value " == " #expected, __FILE__, __LINE__)
+#define FAILSAFE_DETAIL_ENFORCE_EQ_MESSAGE(value, expected, ...) \
+    FAILSAFE_DETAIL_ENFORCE_EQ_PLAIN(value, expected)(__VA_ARGS__)
 
 /** @brief Enforce inequality */
-#define ENFORCE_NE(value, expected) \
+#define ENFORCE_NE(...) \
+    FAILSAFE_DETAIL_ENFORCE_DISPATCH_2(FAILSAFE_DETAIL_ENFORCE_NE_PLAIN, FAILSAFE_DETAIL_ENFORCE_NE_MESSAGE, __VA_ARGS__)
+#define FAILSAFE_DETAIL_ENFORCE_NE_PLAIN(value, expected) \
     ::failsafe::enforce::enforce_ne((value), (expected), #value " != " #expected, __FILE__, __LINE__)
+#define FAILSAFE_DETAIL_ENFORCE_NE_MESSAGE(value, expected, ...) \
+    FAILSAFE_DETAIL_ENFORCE_NE_PLAIN(value, expected)(__VA_ARGS__)
 
 /** @brief Enforce less than */
-#define ENFORCE_LT(value, bound) \
+#define ENFORCE_LT(...) \
+    FAILSAFE_DETAIL_ENFORCE_DISPATCH_2(FAILSAFE_DETAIL_ENFORCE_LT_PLAIN, FAILSAFE_DETAIL_ENFORCE_LT_MESSAGE, __VA_ARGS__)
+#define FAILSAFE_DETAIL_ENFORCE_LT_PLAIN(value, bound) \
     ::failsafe::enforce::enforce_lt((value), (bound), #value " < " #bound, __FILE__, __LINE__)
+#define FAILSAFE_DETAIL_ENFORCE_LT_MESSAGE(value, bound, ...) \
+    FAILSAFE_DETAIL_ENFORCE_LT_PLAIN(value, bound)(__VA_ARGS__)
 
 /** @brief Enforce greater than */
-#define ENFORCE_GT(value, bound) \
+#define ENFORCE_GT(...) \
+    FAILSAFE_DETAIL_ENFORCE_DISPATCH_2(FAILSAFE_DETAIL_ENFORCE_GT_PLAIN, FAILSAFE_DETAIL_ENFORCE_GT_MESSAGE, __VA_ARGS__)
+#define FAILSAFE_DETAIL_ENFORCE_GT_PLAIN(value, bound) \
     ::failsafe::enforce::enforce_gt((value), (bound), #value " > " #bound, __FILE__, __LINE__)
+#define FAILSAFE_DETAIL_ENFORCE_GT_MESSAGE(value, bound, ...) \
+    FAILSAFE_DETAIL_ENFORCE_GT_PLAIN(value, bound)(__VA_ARGS__)
 
 /** @brief Enforce less than or equal */
-#define ENFORCE_LE(value, bound) \
-    ENFORCE((value) <= (bound))
+#define ENFORCE_LE(...) \
+    FAILSAFE_DETAIL_ENFORCE_DISPATCH_2(FAILSAFE_DETAIL_ENFORCE_LE_PLAIN, FAILSAFE_DETAIL_ENFORCE_LE_MESSAGE, __VA_ARGS__)
+#define FAILSAFE_DETAIL_ENFORCE_LE_PLAIN(value, bound) \
+    FAILSAFE_DETAIL_ENFORCE_PLAIN((value) <= (bound))
+#define FAILSAFE_DETAIL_ENFORCE_LE_MESSAGE(value, bound, ...) \
+    FAILSAFE_DETAIL_ENFORCE_LE_PLAIN(value, bound)(__VA_ARGS__)
 
 /** @brief Enforce greater than or equal */
-#define ENFORCE_GE(value, bound) \
-    ENFORCE((value) >= (bound))
+#define ENFORCE_GE(...) \
+    FAILSAFE_DETAIL_ENFORCE_DISPATCH_2(FAILSAFE_DETAIL_ENFORCE_GE_PLAIN, FAILSAFE_DETAIL_ENFORCE_GE_MESSAGE, __VA_ARGS__)
+#define FAILSAFE_DETAIL_ENFORCE_GE_PLAIN(value, bound) \
+    FAILSAFE_DETAIL_ENFORCE_PLAIN((value) >= (bound))
+#define FAILSAFE_DETAIL_ENFORCE_GE_MESSAGE(value, bound, ...) \
+    FAILSAFE_DETAIL_ENFORCE_GE_PLAIN(value, bound)(__VA_ARGS__)
 
 /** @brief Enforce value in range [lower, upper] */
-#define ENFORCE_IN_RANGE(value, lower, upper) \
+#define ENFORCE_IN_RANGE(...) \
+    FAILSAFE_DETAIL_ENFORCE_DISPATCH_3(FAILSAFE_DETAIL_ENFORCE_IN_RANGE_PLAIN, FAILSAFE_DETAIL_ENFORCE_IN_RANGE_MESSAGE, __VA_ARGS__)
+#define FAILSAFE_DETAIL_ENFORCE_IN_RANGE_PLAIN(value, lower, upper) \
     ::failsafe::enforce::enforce_in_range((value), (lower), (upper), \
         #value " in [" #lower ", " #upper "]", __FILE__, __LINE__)
+#define FAILSAFE_DETAIL_ENFORCE_IN_RANGE_MESSAGE(value, lower, upper, ...) \
+    FAILSAFE_DETAIL_ENFORCE_IN_RANGE_PLAIN(value, lower, upper)(__VA_ARGS__)
 
 /** @} */ // end of ComparisonMacros group
 
@@ -793,8 +885,12 @@ namespace failsafe::detail {
  * auto buffer = ENFORCE_NOT_NULL(malloc(size));
  * @endcode
  */
-#define ENFORCE_NOT_NULL(ptr) \
-    ENFORCE(ptr)("Null pointer: " #ptr)
+#define ENFORCE_NOT_NULL(...) \
+    FAILSAFE_DETAIL_ENFORCE_DISPATCH_1(FAILSAFE_DETAIL_ENFORCE_NOT_NULL_PLAIN, FAILSAFE_DETAIL_ENFORCE_NOT_NULL_MESSAGE, __VA_ARGS__)
+#define FAILSAFE_DETAIL_ENFORCE_NOT_NULL_PLAIN(ptr) \
+    FAILSAFE_DETAIL_ENFORCE_PLAIN(ptr)("Null pointer: " #ptr)
+#define FAILSAFE_DETAIL_ENFORCE_NOT_NULL_MESSAGE(ptr, ...) \
+    FAILSAFE_DETAIL_ENFORCE_PLAIN(ptr)(__VA_ARGS__)
 
 /**
  * @brief Enforce valid array index
@@ -804,8 +900,12 @@ namespace failsafe::detail {
  * 
  * For unsigned types, only checks upper bound. For signed types, checks both bounds.
  */
-#define ENFORCE_VALID_INDEX(index, size) \
-    ENFORCE(::failsafe::detail::is_valid_index(index, size))("Index out of bounds: ", (index), " not in [0, ", (size), ")")
+#define ENFORCE_VALID_INDEX(...) \
+    FAILSAFE_DETAIL_ENFORCE_DISPATCH_2(FAILSAFE_DETAIL_ENFORCE_VALID_INDEX_PLAIN, FAILSAFE_DETAIL_ENFORCE_VALID_INDEX_MESSAGE, __VA_ARGS__)
+#define FAILSAFE_DETAIL_ENFORCE_VALID_INDEX_PLAIN(index, size) \
+    FAILSAFE_DETAIL_ENFORCE_PLAIN(::failsafe::detail::is_valid_index(index, size))("Index out of bounds: ", (index), " not in [0, ", (size), ")")
+#define FAILSAFE_DETAIL_ENFORCE_VALID_INDEX_MESSAGE(index, size, ...) \
+    FAILSAFE_DETAIL_ENFORCE_PLAIN(::failsafe::detail::is_valid_index(index, size))(__VA_ARGS__)
 
 /**
  * @brief Debug-only enforcement
@@ -816,9 +916,9 @@ namespace failsafe::detail {
  * @param expr Expression to enforce in debug builds
  */
 #ifdef NDEBUG
-    #define DEBUG_ENFORCE(expr) ((void)0)
+    #define DEBUG_ENFORCE(...) ((void)0)
 #else
-    #define DEBUG_ENFORCE(expr) ENFORCE_TRAP(expr)
+    #define DEBUG_ENFORCE(...) ENFORCE_TRAP(__VA_ARGS__)
 #endif
 
 /** @} */ // end of SpecializedMacros group

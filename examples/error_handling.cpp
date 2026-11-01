@@ -22,8 +22,8 @@ class FileHandler {
     
 public:
     explicit FileHandler(const std::string& filename, const char* mode) {
-        file_ = ENFORCE(fopen(filename.c_str(), mode))
-            ("Failed to open file:", filename, "with mode:", mode);
+        file_ = ENFORCE(fopen(filename.c_str(), mode),
+            "Failed to open file:", filename, "with mode:", mode);
     }
     
     ~FileHandler() {
@@ -34,14 +34,14 @@ public:
     
     void write(const std::string& data) {
         auto written = fwrite(data.c_str(), 1, data.size(), file_);
-        ENFORCE_EQ(written, data.size())
-            ("Failed to write all data. Written:", written, "Expected:", data.size());
+        ENFORCE_EQ(written, data.size(),
+            "Failed to write all data. Written:", written, "Expected:", data.size());
     }
     
     std::string read(size_t size) {
         std::string buffer(size, '\0');
         auto read_bytes = fread(buffer.data(), 1, size, file_);
-        ENFORCE_GT(read_bytes, 0u)("Failed to read from file");
+        ENFORCE_GT(read_bytes, 0u, "Failed to read from file");
         buffer.resize(read_bytes);
         return buffer;
     }
@@ -55,12 +55,12 @@ public:
     void connect(const std::string& host, int port) {
         try {
             // Validate inputs
-            ENFORCE(!host.empty())("Host cannot be empty");
-            ENFORCE_IN_RANGE(port, 1, 65535)("Invalid port number");
+            ENFORCE(!host.empty(), "Host cannot be empty");
+            ENFORCE_IN_RANGE(port, 1, 65535, "Invalid port number");
             
             // Simulate connection (would be real socket code)
             socket_fd_ = -1; // Simulate failure
-            ENFORCE_NE(socket_fd_, -1)("Failed to create socket");
+            ENFORCE_NE(socket_fd_, -1, "Failed to create socket");
             
         } catch (...) {
             // Add context about what we were trying to do
@@ -71,9 +71,9 @@ public:
     
     void send_request(const std::string& endpoint, const std::string& data) {
         try {
-            ENFORCE_GE(socket_fd_, 0)("Not connected");
-            ENFORCE(!endpoint.empty())("Endpoint cannot be empty");
-            ENFORCE_LE(data.size(), 1024 * 1024)("Request too large");
+            ENFORCE_GE(socket_fd_, 0, "Not connected");
+            ENFORCE(!endpoint.empty(), "Endpoint cannot be empty");
+            ENFORCE_LE(data.size(), 1024 * 1024, "Request too large");
             
             // Simulate sending (would be real socket code)
             
@@ -96,20 +96,20 @@ struct AppConfig {
     void validate() {
         try {
             // Database settings
-            ENFORCE(!db_host.empty())("Database host is required");
-            ENFORCE_IN_RANGE(db_port, 1, 65535)("Invalid database port");
+            ENFORCE(!db_host.empty(), "Database host is required");
+            ENFORCE_IN_RANGE(db_port, 1, 65535, "Invalid database port");
             
             // API settings
-            ENFORCE(!api_key.empty())("API key is required");
-            ENFORCE_GE(api_key.length(), 32)("API key too short");
+            ENFORCE(!api_key.empty(), "API key is required");
+            ENFORCE_GE(api_key.length(), 32, "API key too short");
             
             // Connection settings
-            ENFORCE_IN_RANGE(max_connections, 1, 1000)
-                ("Max connections must be between 1 and 1000");
+            ENFORCE_IN_RANGE(max_connections, 1, 1000,
+                "Max connections must be between 1 and 1000");
             
             // Timeout settings
-            ENFORCE_GT(timeout_seconds, 0.0)("Timeout must be positive");
-            ENFORCE_LE(timeout_seconds, 300.0)("Timeout too large");
+            ENFORCE_GT(timeout_seconds, 0.0, "Timeout must be positive");
+            ENFORCE_LE(timeout_seconds, 300.0, "Timeout too large");
             
         } catch (...) {
             THROW(std::invalid_argument, "Invalid configuration");
@@ -121,17 +121,17 @@ struct AppConfig {
 class Calculator {
 public:
     double safe_divide(double a, double b) {
-        ENFORCE_NE(b, 0.0)("Division by zero attempted:", a, "/", b);
+        ENFORCE_NE(b, 0.0, "Division by zero attempted:", a, "/", b);
         return a / b;
     }
     
     double safe_sqrt(double x) {
-        ENFORCE_GE(x, 0.0)("Cannot take square root of negative number:", x);
+        ENFORCE_GE(x, 0.0, "Cannot take square root of negative number:", x);
         return std::sqrt(x);
     }
     
     double safe_log(double x) {
-        ENFORCE_GT(x, 0.0)("Logarithm requires positive argument:", x);
+        ENFORCE_GT(x, 0.0, "Logarithm requires positive argument:", x);
         return std::log(x);
     }
 };
@@ -151,8 +151,8 @@ private:
     State state_ = CREATED;
     
     void enforce_transition(State from, State to) {
-        ENFORCE_EQ(state_, from)
-            ("Invalid state transition. Current:", state_name(state_),
+        ENFORCE_EQ(state_, from,
+            "Invalid state transition. Current:", state_name(state_),
              "Expected:", state_name(from), "Target:", state_name(to));
     }
     
@@ -200,8 +200,8 @@ public:
     
     void cancel() {
         try {
-            ENFORCE(state_ == CREATED || state_ == CONFIRMED)
-                ("Can only cancel orders that haven't shipped");
+            ENFORCE(state_ == CREATED || state_ == CONFIRMED,
+                "Can only cancel orders that haven't shipped");
             state_ = CANCELLED;
             LOG_INFO("Order cancelled");
         } catch (...) {
@@ -217,15 +217,15 @@ class BankAccount {
     
 public:
     explicit BankAccount(double initial_balance) {
-        ENFORCE_GE(initial_balance, 0.0)("Initial balance cannot be negative");
+        ENFORCE_GE(initial_balance, 0.0, "Initial balance cannot be negative");
         balance_ = initial_balance;
     }
     
     void deposit(double amount) {
         try {
-            ENFORCE(!frozen_)("Account is frozen");
-            ENFORCE_GT(amount, 0.0)("Deposit amount must be positive");
-            ENFORCE_LE(amount, 1000000.0)("Deposit amount too large");
+            ENFORCE(!frozen_, "Account is frozen");
+            ENFORCE_GT(amount, 0.0, "Deposit amount must be positive");
+            ENFORCE_LE(amount, 1000000.0, "Deposit amount too large");
             
             balance_ += amount;
             LOG_INFO("Deposited:", amount, "New balance:", balance_);
@@ -237,10 +237,10 @@ public:
     
     void withdraw(double amount) {
         try {
-            ENFORCE(!frozen_)("Account is frozen");
-            ENFORCE_GT(amount, 0.0)("Withdrawal amount must be positive");
-            ENFORCE_LE(amount, balance_)("Insufficient funds");
-            ENFORCE_LE(amount, 5000.0)("Daily withdrawal limit exceeded");
+            ENFORCE(!frozen_, "Account is frozen");
+            ENFORCE_GT(amount, 0.0, "Withdrawal amount must be positive");
+            ENFORCE_LE(amount, balance_, "Insufficient funds");
+            ENFORCE_LE(amount, 5000.0, "Daily withdrawal limit exceeded");
             
             balance_ -= amount;
             LOG_INFO("Withdrew:", amount, "New balance:", balance_);

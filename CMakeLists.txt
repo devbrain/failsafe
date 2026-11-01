@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 
 project(failsafe
-    VERSION 1.0.0
+    VERSION 1.1.0
     DESCRIPTION "A header-only C++ error handling library"
     LANGUAGES CXX
 )

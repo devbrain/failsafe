@@ -79,10 +79,10 @@ TEST_SUITE("expected") {
     TEST_CASE("ENFORCE integration with expected") {
         auto ok = divide(20, 4);
         int val = 0;
-        CHECK_NOTHROW(val = ENFORCE(ok)("Failed to divide"));
+        CHECK_NOTHROW(val = ENFORCE(ok, "Failed to divide"));
         CHECK(val == 5);
 
         auto err = divide(20, 0);
-        CHECK_THROWS_AS(ENFORCE(err)("Divide failed"), std::runtime_error);
+        CHECK_THROWS_AS(ENFORCE(err, "Divide failed"), std::runtime_error);
     }
 }
